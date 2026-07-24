@@ -1,80 +1,58 @@
 # SeedCoop
 
-Digital cooperative society platform for savings, deposits, loans, and member management.
+Digital cooperative society platform for thrift, deposits, loans, investments, dividends, and staff governance.
 
-**Live demo (GitHub Pages):** https://temidayoxyz.github.io/seedcoopdemo/
+**Live:** https://temidayoxyz.github.io/seedcoopdemo/
 
-This repository is a full-stack **prototype**. Locally it runs Express + SQLite. On GitHub Pages it runs as a **static SPA** with an in-browser mock API (localStorage), so you can explore member and admin portals without a backend.
+## Sign-in directory (10 profiles)
+
+Password for every account: **`seedcoop`**
+
+### Staff (3)
+
+| Continue as | Email | Role | Powers |
+|-------------|--------|------|--------|
+| Amaka Okoro | `admin@seedcoop.ng` | Super Admin | Full control — membership, loan approval, funds, investments, dividends, settings |
+| Aisha Nuhu | `treasurer@seedcoop.ng` | Treasurer | Contributions, deposits/withdrawals, loan disbursement, investments & dividends |
+| Tunde Bakare | `auditor@seedcoop.ng` | Auditor | Read-only ledger, reports, members, outbox |
+
+### Members (7)
+
+| ID | Name | Opening position |
+|----|------|------------------|
+| SC-001 | Ada Okonkwo | Fully paid · strong thrift · no loan |
+| SC-002 | Chidi Okafor | Partial dues · active emergency loan |
+| SC-003 | Temidayo Adebayo | Arrears · loan restricted |
+| SC-004 | Fatima Bello | School loan nearly complete |
+| SC-005 | Emeka Nwosu | Loan pending board approval |
+| SC-006 | Ngozi Eze | Withdrawal pending |
+| SC-007 | Ibrahim Yusuf | New member · building thrift |
+
+All activity shares **one cooperative ledger** on the device (member thrift, staff actions, investments, and dividends stay in sync). Use **Restore default cooperative data** on the sign-in page or Super Admin settings before a walkthrough.
 
 ## Features
 
-- Public site (home, about, membership, loans, bylaws)
-- Member portal: contributions, loans, deposits/withdrawals, statements, notifications
-- Admin portal: applications, members, contributions, loans, funds, reports, email outbox
-- Roles: Member, Super Admin, Treasurer, Loan Officer, Auditor
-- Money amounts in Nigerian Naira (stored as kobo)
+- Money UX: ₦ formatting (kobo), receipts, copyable references, double-sided admin ledger
+- Contributions, deposits, withdrawals end-to-end
+- Loans: apply → approve (Super Admin) → disburse (Treasurer)
+- Investments portfolio + surplus dividends
+- Member statements from live ledger
+- Announcements + message outbox
+- Role-visible staff navigation
 
-## Demo logins
-
-| Portal | Email | Password |
-|--------|--------|----------|
-| Member | `john@seedcoop.demo` | `demo123` |
-| Member | `chidi@seedcoop.demo` | `demo123` |
-| Admin | `admin@seedcoop.demo` | `demo123` |
-| Treasurer | `treasurer@seedcoop.demo` | `demo123` |
-| Loan Officer | `loans@seedcoop.demo` | `demo123` |
-
-## Local development (full stack)
-
-Requires Node.js 20+.
+## Local development
 
 ```bash
 npm install
 npm run dev
 ```
 
-App: http://localhost:3010 (or set `PORT`)
-
-Optional DB helpers:
+App: http://localhost:3010
 
 ```bash
-npm run db:seed
-npm run db:reset
+npm run build:pages   # GitHub Pages static build
 ```
 
-## GitHub Pages build
+## Stack
 
-GitHub Pages only serves static files. The Pages build enables **static demo mode**:
-
-```bash
-npm run build:pages
-npm run preview:pages
-```
-
-- Base path: `/seedcoopdemo/`
-- API calls are handled in the browser (see `src/static-demo/`)
-- Demo data persists in `localStorage` for that browser
-
-CI deploys automatically on every push to `main` via `.github/workflows/deploy-pages.yml`.
-
-## Tech stack
-
-- React 19 + Vite + TypeScript + Tailwind CSS 4
-- React Router 7
-- Express + Drizzle ORM + SQLite (local / full stack only)
-- Cookie sessions (local); localStorage session (static demo)
-
-## Project layout
-
-```
-src/
-  pages/public|member|admin   UI surfaces
-  server/api.ts               Express API (local)
-  db/                         Schema, seed, SQLite
-  static-demo/                In-browser mock API for Pages
-server.ts                     Dev/prod Node entry
-```
-
-## License
-
-Private demo / prototype. Adjust as needed for your org.
+React 19 · Vite · TypeScript · Tailwind · Express (asset server) · client-side cooperative state

@@ -1,19 +1,13 @@
 import { handleMockApi } from './mockApi';
 
-/** True when building/serving the GitHub Pages static demo (no Express backend). */
-export const isStaticDemo =
-  import.meta.env.VITE_STATIC_DEMO === 'true' ||
-  import.meta.env.MODE === 'pages';
-
 /**
- * Intercept browser fetch for /api/* when running the static Pages build.
- * Local `npm run dev` still uses the real Express + SQLite server.
+ * Cooperative state lives in the browser so member and staff portals
+ * always share one ledger and balances on this device.
  */
 export function installStaticDemoFetch() {
-  if (!isStaticDemo) return;
   if (typeof window === 'undefined') return;
-  if ((window as any).__seedcoopStaticDemoInstalled) return;
-  (window as any).__seedcoopStaticDemoInstalled = true;
+  if ((window as any).__seedcoopApiInstalled) return;
+  (window as any).__seedcoopApiInstalled = true;
 
   const originalFetch = window.fetch.bind(window);
 
@@ -25,7 +19,6 @@ export function installStaticDemoFetch() {
           ? input.href
           : input.url;
 
-    // Match absolute, relative, and base-prefixed API paths
     const isApi =
       url.includes('/api/') ||
       url.startsWith('/api') ||
@@ -36,10 +29,4 @@ export function installStaticDemoFetch() {
     }
     return originalFetch(input, init);
   };
-
-  console.info(
-    '%cSeedCoop%c static demo mode — API is in-browser (localStorage). Demo password: demo123',
-    'font-weight:bold;color:#14532d',
-    'color:inherit'
-  );
 }

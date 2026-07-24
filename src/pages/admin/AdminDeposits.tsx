@@ -89,7 +89,7 @@ export function AdminDeposits() {
                       {new Date(req.requestedAt * 1000).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-xs text-ink-600">
-                      {req.notes || 'Instant Deposit (Paystack/Card)'}
+                      {req.notes || 'Member deposit'}
                     </td>
                     <td className="px-6 py-4 text-right font-semibold font-mono text-seed-950">
                       ₦{(req.amountKobo / 100).toLocaleString()}

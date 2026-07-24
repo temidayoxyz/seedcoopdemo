@@ -1,109 +1,173 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ROLE_DUTIES, ROLE_LABELS } from '../../lib/roles';
+import { RotateCcw, Shield, Users } from 'lucide-react';
+
+type Persona = {
+  email: string;
+  role: string;
+  label: string;
+  subtitle: string;
+  portal: 'MEMBER' | 'ADMIN';
+  membershipNumber?: string;
+  tagline?: string;
+};
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('demo123');
-  const [portal, setPortal] = useState<'MEMBER' | 'ADMIN' | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [staff, setStaff] = useState<Persona[]>([]);
+  const [members, setMembers] = useState<Persona[]>([]);
+  const [password, setPassword] = useState('seedcoop');
+  const [loadingEmail, setLoadingEmail] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
-    const p = searchParams.get('portal');
-    if (p === 'ADMIN' || p === 'MEMBER') {
-      setPortal(p);
-      setEmail(p === 'ADMIN' ? 'admin@seedcoop.demo' : 'john@seedcoop.demo');
-    } else {
-      setPortal(null);
-    }
-  }, [searchParams]);
+    fetch('/api/auth/personas')
+      .then((r) => r.json())
+      .then((d) => {
+        setStaff(d.personas?.staff || []);
+        setMembers(d.personas?.members || []);
+        if (d.passwordHint) setPassword(d.passwordHint);
+      })
+      .catch(() => toast.error('Could not load sign-in directory'));
+  }, []);
 
-  const handleLogin = async (e: any) => {
-    e.preventDefault();
-    if (!portal) return;
-    setIsSubmitting(true);
+  const continueAs = async (p: Persona) => {
+    setLoadingEmail(p.email);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, portal })
+        body: JSON.stringify({ email: p.email, password, portal: p.portal }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Login successful');
-        navigate(portal === 'MEMBER' ? '/member/dashboard' : '/admin/dashboard');
+        toast.success(`Signed in as ${p.label}`);
+        navigate(p.portal === 'MEMBER' ? '/member/dashboard' : '/admin/dashboard');
       } else {
-        toast.error(data.error || 'Login failed');
+        toast.error(data.error || 'Sign-in failed');
       }
-    } catch (err) {
-      toast.error('An error occurred');
+    } catch {
+      toast.error('Sign-in failed');
     } finally {
-      setIsSubmitting(false);
+      setLoadingEmail(null);
     }
   };
 
-  const selectPortal = (selected: 'MEMBER' | 'ADMIN') => {
-    setSearchParams({ portal: selected });
+  const resetData = async () => {
+    if (!confirm('Restore all cooperative data to the default opening state? Current balances and requests on this device will be replaced.')) {
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await fetch('/api/system/reset', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Data restored to default state');
+        // refresh personas (stable)
+        const r = await fetch('/api/auth/personas');
+        const d = await r.json();
+        setStaff(d.personas?.staff || []);
+        setMembers(d.personas?.members || []);
+      } else {
+        toast.error(data.error || 'Reset failed');
+      }
+    } catch {
+      toast.error('Reset failed');
+    } finally {
+      setResetting(false);
+    }
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-ivory-50">
-      <div className="max-w-md w-full bg-white rounded-[14px] shadow-sm border border-ink-200 p-8 space-y-8">
-        {!portal ? (
-          <>
-            <div>
-              <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-seed-950">
-                Sign in to your account
-              </h2>
-              <p className="mt-2 text-center text-sm text-ink-600">
-                Select a portal to continue.
-              </p>
-            </div>
-            <div className="mt-8">
-              <div className="grid grid-cols-1 gap-4">
-                <button onClick={() => selectPortal('MEMBER')} className="w-full inline-flex justify-center py-4 px-4 border border-ink-200 rounded-[8px] shadow-sm bg-white text-sm font-medium text-ink-800 hover:bg-ink-50 transition-colors">
-                  Continue as Member
-                </button>
-                <button onClick={() => selectPortal('ADMIN')} className="w-full inline-flex justify-center py-4 px-4 border border-ink-200 rounded-[8px] shadow-sm bg-white text-sm font-medium text-ink-800 hover:bg-ink-50 transition-colors">
-                  Continue as Admin
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div>
-              <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-seed-950">
-                {portal === 'ADMIN' ? 'Admin Portal' : 'Member Portal'} Sign In
-              </h2>
-              <p className="mt-2 text-center text-sm text-ink-600">
-                Sign in with demo credentials to continue.
-              </p>
-            </div>
-            
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email address</label>
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 border border-ink-200 rounded-[8px] focus:ring-2 focus:ring-seed-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Password</label>
-                  <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 border border-ink-200 rounded-[8px] focus:ring-2 focus:ring-seed-500 outline-none" />
-                </div>
-              </div>
+    <div className="min-h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8 bg-ivory-50">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-seed-950">Sign in to SeedCoop</h1>
+          <p className="mt-2 text-ink-600 max-w-xl mx-auto">
+            Choose a staff or member profile. All activity shares one live ledger on this device — contributions, loans, withdrawals, investments, and dividends stay in sync.
+          </p>
+          <p className="mt-2 text-sm text-ink-500">
+            Password for every account: <span className="font-mono font-semibold text-seed-800">{password}</span>
+          </p>
+        </div>
 
-              <div>
-                <button type="submit" disabled={isSubmitting} className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-[10px] shadow-sm text-sm font-medium text-white bg-seed-800 hover:bg-seed-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-seed-500 disabled:opacity-50 transition-colors">
-                  Sign in
-                </button>
-              </div>
-            </form>
-          </>
-        )}
+        <section className="bg-white rounded-[16px] border border-ink-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-ink-100 bg-seed-50 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-seed-700" />
+            <div>
+              <h2 className="font-bold text-seed-950">Staff</h2>
+              <p className="text-xs text-ink-600">Roles with different powers and duties</p>
+            </div>
+          </div>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {staff.map((p) => (
+              <button
+                key={p.email}
+                type="button"
+                disabled={!!loadingEmail}
+                onClick={() => continueAs(p)}
+                className="text-left p-4 rounded-[12px] border border-ink-200 hover:border-seed-400 hover:bg-seed-50/50 transition-colors disabled:opacity-50"
+              >
+                <div className="font-semibold text-seed-950">{p.label}</div>
+                <div className="text-xs font-medium text-gold-600 mt-0.5">
+                  {ROLE_LABELS[p.role as keyof typeof ROLE_LABELS] || p.subtitle}
+                </div>
+                <p className="text-xs text-ink-600 mt-2 leading-relaxed">
+                  {ROLE_DUTIES[p.role as keyof typeof ROLE_DUTIES] || p.subtitle}
+                </p>
+                <div className="mt-3 text-sm font-medium text-seed-800">
+                  {loadingEmail === p.email ? 'Signing in…' : `Continue as ${p.subtitle}`}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-[16px] border border-ink-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-ink-100 bg-ivory-50 flex items-center gap-2">
+            <Users className="w-5 h-5 text-seed-700" />
+            <div>
+              <h2 className="font-bold text-seed-950">Members</h2>
+              <p className="text-xs text-ink-600">Seven members with different thrift and loan positions</p>
+            </div>
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {members.map((p) => (
+              <button
+                key={p.email}
+                type="button"
+                disabled={!!loadingEmail}
+                onClick={() => continueAs(p)}
+                className="text-left p-4 rounded-[12px] border border-ink-200 hover:border-seed-400 hover:bg-seed-50/50 transition-colors disabled:opacity-50"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold text-seed-950">{p.label}</div>
+                    <div className="text-xs font-mono text-seed-700 mt-0.5">{p.membershipNumber || p.subtitle}</div>
+                  </div>
+                </div>
+                {p.tagline && <p className="text-xs text-ink-600 mt-2">{p.tagline}</p>}
+                <div className="mt-3 text-sm font-medium text-seed-800">
+                  {loadingEmail === p.email ? 'Signing in…' : `Continue as ${p.label.split(' ')[0]}`}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={resetData}
+            disabled={resetting}
+            className="inline-flex items-center gap-2 text-sm text-ink-600 hover:text-seed-800 px-4 py-2 rounded-[8px] border border-ink-200 bg-white hover:bg-ink-50"
+          >
+            <RotateCcw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
+            Restore default cooperative data
+          </button>
+        </div>
       </div>
     </div>
   );

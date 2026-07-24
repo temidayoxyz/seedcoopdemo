@@ -1,9 +1,14 @@
 import { useOutletContext } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { can } from '../../lib/roles';
+import { MoneyText } from '../../components/money/MoneyText';
+import { CopyableRef } from '../../components/money/CopyableRef';
+import { ReceiptModal, type ReceiptData } from '../../components/money/ReceiptModal';
 
 export function AdminLoans() {
   const { user } = useOutletContext<{ user: any }>();
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [loans, setLoans] = useState<any[]>([]);
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -31,7 +36,8 @@ export function AdminLoans() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Loan successfully ${action === 'APPROVE' ? 'approved' : 'disbursed'}.`);
+        toast.success(action === 'APPROVE' ? 'Loan approved.' : 'Loan disbursed.');
+        if (data.receipt) setReceipt(data.receipt);
         setSelectedLoan(null);
         fetchLoans();
       } else {
@@ -75,8 +81,8 @@ export function AdminLoans() {
                       {loan.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="text-xs text-ink-600 mt-1">{loan.member?.firstName} {loan.member?.lastName}</div>
-                  <div className="text-xs text-ink-600">₦{(loan.principalKobo / 100).toLocaleString()}</div>
+                  <div className="text-xs text-ink-600 mt-1">{loan.member?.firstName} {loan.member?.lastName} · {loan.member?.membershipNumber}</div>
+                  <div className="text-xs text-ink-600"><MoneyText kobo={loan.principalKobo} /></div>
                 </div>
               ))
             )}
@@ -91,7 +97,7 @@ export function AdminLoans() {
                   <h3 className="font-semibold text-seed-950">Loan Details</h3>
                   <p className="text-xs text-ink-600 mt-1">{selectedLoan.member?.firstName} {selectedLoan.member?.lastName} • {selectedLoan.member?.membershipNumber}</p>
                 </div>
-                <span className="text-sm font-mono text-ink-600">{selectedLoan.reference}</span>
+                <CopyableRef value={selectedLoan.reference} />
               </div>
               
               <div className="p-6 flex-1 overflow-y-auto space-y-8">
@@ -100,15 +106,15 @@ export function AdminLoans() {
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <p className="text-xs text-ink-600 mb-1">Principal</p>
-                      <p className="font-medium tabular-nums">₦{(selectedLoan.principalKobo / 100).toLocaleString()}</p>
+                      <p className="font-medium"><MoneyText kobo={selectedLoan.principalKobo} /></p>
                     </div>
                     <div>
-                      <p className="text-xs text-ink-600 mb-1">Total Due</p>
-                      <p className="font-medium tabular-nums">₦{(selectedLoan.totalDueKobo / 100).toLocaleString()}</p>
+                      <p className="text-xs text-ink-600 mb-1">Total due</p>
+                      <p className="font-medium"><MoneyText kobo={selectedLoan.totalDueKobo} /></p>
                     </div>
                     <div>
                       <p className="text-xs text-ink-600 mb-1">Term</p>
-                      <p className="font-medium">{selectedLoan.termMonths} Months</p>
+                      <p className="font-medium">{selectedLoan.termMonths} months</p>
                     </div>
                   </div>
                 </section>
@@ -137,19 +143,25 @@ export function AdminLoans() {
                 </section>
               </div>
 
-              {selectedLoan.status === 'PENDING_APPROVAL' && (user.role === 'SUPER_ADMIN' || user.role === 'LOAN_OFFICER') && (
+              {selectedLoan.status === 'PENDING_APPROVAL' && can(user.role, 'loans:approve') && (
                 <div className="px-6 py-4 border-t border-ink-200 bg-ivory-50 flex justify-end gap-3">
-                  <button onClick={() => handleAction('APPROVE')} disabled={isProcessing} className="px-6 py-2 text-sm font-medium text-white bg-seed-800 rounded-[8px] hover:bg-seed-700">
-                    {isProcessing ? 'Processing...' : 'Approve Loan'}
+                  <button type="button" onClick={() => handleAction('APPROVE')} disabled={isProcessing} className="px-6 py-2 text-sm font-medium text-white bg-seed-800 rounded-[8px] hover:bg-seed-700">
+                    {isProcessing ? 'Processing…' : 'Approve loan'}
                   </button>
                 </div>
               )}
               
-              {selectedLoan.status === 'APPROVED' && (user.role === 'SUPER_ADMIN' || user.role === 'TREASURER') && (
+              {selectedLoan.status === 'APPROVED' && can(user.role, 'loans:disburse') && (
                 <div className="px-6 py-4 border-t border-ink-200 bg-ivory-50 flex justify-end gap-3">
-                  <button onClick={() => handleAction('DISBURSE')} disabled={isProcessing} className="px-6 py-2 text-sm font-medium text-white bg-gold-500 rounded-[8px] hover:bg-gold-600">
-                    {isProcessing ? 'Processing...' : 'Simulate Disbursement'}
+                  <button type="button" onClick={() => handleAction('DISBURSE')} disabled={isProcessing} className="px-6 py-2 text-sm font-medium text-white bg-gold-500 rounded-[8px] hover:bg-gold-600">
+                    {isProcessing ? 'Processing…' : 'Disburse loan'}
                   </button>
+                </div>
+              )}
+
+              {user.role === 'AUDITOR' && (
+                <div className="px-6 py-3 border-t border-ink-200 bg-ink-50 text-xs text-ink-600">
+                  Auditor view — approve and disburse actions are disabled for your role.
                 </div>
               )}
             </div>
@@ -160,6 +172,7 @@ export function AdminLoans() {
           )}
         </div>
       </div>
+      <ReceiptModal receipt={receipt} onClose={() => setReceipt(null)} />
     </div>
   );
 }

@@ -95,7 +95,7 @@ export function MemberWithdrawals() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-ivory-50 p-4 rounded-[8px] border border-ink-200 mb-6">
               <p className="text-xs text-ink-600 uppercase tracking-wider mb-1">Available Balance</p>
-              <p className="font-bold text-2xl text-seed-950">₦{(member.totalContributionsKobo / 100).toLocaleString()}</p>
+              <p className="font-bold text-2xl text-seed-950 tabular-nums">₦{((member.totalContributionsKobo || 0) / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
 
             <div>

@@ -107,9 +107,14 @@ export function AdminOutbox() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="bg-ivory-50 p-2.5 rounded-[6px] border border-ink-100 font-mono text-xs text-ink-700 max-w-md overflow-x-auto">
-                            {JSON.stringify(parsedPayload, null, 1)}
-                          </div>
+                          <p className="text-sm text-ink-700 max-w-md">{msg.body || '—'}</p>
+                          {Object.keys(parsedPayload).length > 0 && (
+                            <div className="mt-2 bg-ivory-50 p-2 rounded-[6px] border border-ink-100 text-xs text-ink-600">
+                              {parsedPayload.reference && <span>Ref: {parsedPayload.reference} </span>}
+                              {parsedPayload.membershipNumber && <span>· {parsedPayload.membershipNumber} </span>}
+                              {parsedPayload.amountKobo != null && <span>· ₦{(parsedPayload.amountKobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-ink-600 font-mono whitespace-nowrap">
                           {new Date(msg.sentAt * 1000).toLocaleString()}

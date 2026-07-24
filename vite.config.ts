@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      // Cloudflare Quick Tunnel hostnames (random *.trycloudflare.com).
+      // Leading dot allows the domain and all subdomains.
+      allowedHosts: ['.trycloudflare.com'],
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},

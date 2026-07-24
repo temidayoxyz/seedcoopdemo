@@ -38,6 +38,10 @@ import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminDeposits } from './pages/admin/AdminDeposits';
 import { AdminWithdrawals } from './pages/admin/AdminWithdrawals';
 import { AdminProfile } from './pages/admin/AdminProfile';
+import { AdminLedger } from './pages/admin/AdminLedger';
+import { AdminInvestments } from './pages/admin/AdminInvestments';
+import { AdminDividends } from './pages/admin/AdminDividends';
+import { MemberDividends } from './pages/member/MemberDividends';
 
 // Vite BASE_URL is e.g. "/seedcoopdemo/" on GitHub Pages
 const routerBasename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || undefined;
@@ -70,6 +74,7 @@ export default function App() {
           <Route path="deposits" element={<MemberDeposits />} />
           <Route path="withdrawals" element={<MemberWithdrawals />} />
           <Route path="statements" element={<MemberStatements />} />
+          <Route path="dividends" element={<MemberDividends />} />
           <Route path="notifications" element={<MemberNotifications />} />
           <Route path="profile" element={<MemberProfile />} />
         </Route>
@@ -84,6 +89,9 @@ export default function App() {
           <Route path="loans" element={<AdminLoans />} />
           <Route path="deposits" element={<AdminDeposits />} />
           <Route path="withdrawals" element={<AdminWithdrawals />} />
+          <Route path="investments" element={<AdminInvestments />} />
+          <Route path="dividends" element={<AdminDividends />} />
+          <Route path="ledger" element={<AdminLedger />} />
           <Route path="reports" element={<AdminReports />} />
           <Route path="outbox" element={<AdminOutbox />} />
           <Route path="profile" element={<AdminProfile />} />

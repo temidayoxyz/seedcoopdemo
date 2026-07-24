@@ -1,6 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { can } from '../../lib/roles';
 
 export function AdminApplications() {
   const { user } = useOutletContext<{ user: any }>();
@@ -120,24 +121,30 @@ export function AdminApplications() {
                 <section>
                   <h4 className="text-sm font-semibold text-seed-800 uppercase tracking-wider mb-4 border-b border-ink-100 pb-2">Attached Documents</h4>
                   <div className="p-3 border border-ink-200 rounded-[8px] flex justify-between items-center bg-ivory-50">
-                    <span className="text-sm font-medium">mock-document.pdf</span>
-                    <span className="text-xs text-ink-500 px-2 py-1 bg-ink-100 rounded">Demo File</span>
+                    <span className="text-sm font-medium">national-id.pdf</span>
+                    <span className="text-xs text-ink-500 px-2 py-1 bg-ink-100 rounded">ID document</span>
                   </div>
                 </section>
               </div>
 
-              {selectedApp.status === 'PENDING' && (
+              {selectedApp.status === 'PENDING' && can(user.role, 'applications:write') && (
                 <div className="px-6 py-4 border-t border-ink-200 bg-ivory-50 flex justify-end gap-3">
-                  <button className="px-4 py-2 text-sm font-medium text-danger bg-white border border-danger/20 rounded-[8px] hover:bg-danger/5 transition-colors">
-                    Reject Application
+                  <button type="button" className="px-4 py-2 text-sm font-medium text-danger bg-white border border-danger/20 rounded-[8px] hover:bg-danger/5 transition-colors">
+                    Reject application
                   </button>
                   <button 
+                    type="button"
                     onClick={handleApprove}
                     disabled={isApproving}
                     className="px-6 py-2 text-sm font-medium text-white bg-seed-800 rounded-[8px] hover:bg-seed-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
-                    {isApproving ? 'Approving...' : 'Approve & Create Member'}
+                    {isApproving ? 'Approving…' : 'Approve & create member'}
                   </button>
+                </div>
+              )}
+              {selectedApp.status === 'PENDING' && !can(user.role, 'applications:write') && (
+                <div className="px-6 py-3 border-t border-ink-200 bg-ink-50 text-xs text-ink-600">
+                  Only Super Admin can approve membership applications.
                 </div>
               )}
             </div>

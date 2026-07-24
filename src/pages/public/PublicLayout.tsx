@@ -59,9 +59,9 @@ export function PublicLayout() {
           <div>
             <h3 className="font-medium mb-4 text-ivory-50">Contact</h3>
             <ul className="space-y-2 text-sm text-seed-200">
-              <li>contact@seedcoop.demo</li>
+              <li>contact@seedcoop.ng</li>
               <li>+234 800 000 0000</li>
-              <li className="mt-4 text-xs opacity-75">Demo Environment Only. No real money or emails.</li>
+              <li className="mt-4 text-xs opacity-75">Member-owned thrift & credit cooperative.</li>
             </ul>
           </div>
         </div>
