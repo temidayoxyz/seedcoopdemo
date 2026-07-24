@@ -1,0 +1,95 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+
+// Public Pages
+import { PublicLayout } from './pages/public/PublicLayout';
+import { HomePage } from './pages/public/HomePage';
+import { LoginPage } from './pages/public/LoginPage';
+import { AboutPage } from './pages/public/AboutPage';
+import { MembershipPage } from './pages/public/MembershipPage';
+import { LoansPage } from './pages/public/LoansPage';
+import { TermsPage } from './pages/public/TermsPage';
+import { PrivacyPage } from './pages/public/PrivacyPage';
+import { BylawsPage } from './pages/public/BylawsPage';
+import { GenericPage } from './pages/public/GenericPage';
+
+// Member Pages
+import { MemberLayout } from './pages/member/MemberLayout';
+import { MemberDashboard } from './pages/member/MemberDashboard';
+import { MemberContributions } from './pages/member/MemberContributions';
+import { MemberLoans } from './pages/member/MemberLoans';
+import { MemberLoanApply } from './pages/member/MemberLoanApply';
+import { MemberStatements } from './pages/member/MemberStatements';
+import { MemberNotifications } from './pages/member/MemberNotifications';
+import { MemberDeposits } from './pages/member/MemberDeposits';
+import { MemberWithdrawals } from './pages/member/MemberWithdrawals';
+import { MemberProfile } from './pages/member/MemberProfile';
+
+// Admin Pages
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminApplications } from './pages/admin/AdminApplications';
+import { AdminLoans } from './pages/admin/AdminLoans';
+import { AdminMembers } from './pages/admin/AdminMembers';
+import { AdminContributions } from './pages/admin/AdminContributions';
+import { AdminReports } from './pages/admin/AdminReports';
+import { AdminOutbox } from './pages/admin/AdminOutbox';
+import { AdminSettings } from './pages/admin/AdminSettings';
+import { AdminDeposits } from './pages/admin/AdminDeposits';
+import { AdminWithdrawals } from './pages/admin/AdminWithdrawals';
+import { AdminProfile } from './pages/admin/AdminProfile';
+
+// Vite BASE_URL is e.g. "/seedcoopdemo/" on GitHub Pages
+const routerBasename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || undefined;
+
+export default function App() {
+  return (
+    <Router basename={routerBasename}>
+      <Toaster position="top-right" richColors />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="membership" element={<MembershipPage />} />
+          <Route path="loans" element={<LoansPage />} />
+          <Route path="terms" element={<TermsPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="bylaws" element={<BylawsPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="*" element={<GenericPage />} />
+        </Route>
+
+        {/* Member Routes */}
+        <Route path="/member" element={<MemberLayout />}>
+          <Route index element={<Navigate to="/member/dashboard" replace />} />
+          <Route path="dashboard" element={<MemberDashboard />} />
+          <Route path="contributions" element={<MemberContributions />} />
+          <Route path="loans" element={<MemberLoans />} />
+          <Route path="loans/apply" element={<MemberLoanApply />} />
+          <Route path="deposits" element={<MemberDeposits />} />
+          <Route path="withdrawals" element={<MemberWithdrawals />} />
+          <Route path="statements" element={<MemberStatements />} />
+          <Route path="notifications" element={<MemberNotifications />} />
+          <Route path="profile" element={<MemberProfile />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="applications" element={<AdminApplications />} />
+          <Route path="members" element={<AdminMembers />} />
+          <Route path="contributions" element={<AdminContributions />} />
+          <Route path="loans" element={<AdminLoans />} />
+          <Route path="deposits" element={<AdminDeposits />} />
+          <Route path="withdrawals" element={<AdminWithdrawals />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="outbox" element={<AdminOutbox />} />
+          <Route path="profile" element={<AdminProfile />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
+}
