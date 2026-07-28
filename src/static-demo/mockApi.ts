@@ -40,14 +40,15 @@ async function readBody(init?: RequestInit): Promise<any> {
 }
 
 function requireMember(state: CoopState) {
-  const { user, member } = getAuth(state);
-  if (!user || !member) return null;
+  const { user, member, portal } = getAuth(state);
+  // Member portal only — staff dual-identity uses portal switch, not role demotion
+  if (!user || !member || portal !== 'MEMBER') return null;
   return { user, member };
 }
 
 function requireStaff(state: CoopState) {
-  const { user } = getAuth(state);
-  if (!user || !isStaff(user.role)) return null;
+  const { user, portal } = getAuth(state);
+  if (!user || !isStaff(user.role) || portal !== 'ADMIN') return null;
   return user;
 }
 
@@ -176,15 +177,49 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     if (!user || user.passwordHash !== body.password) {
       return json({ error: 'Invalid credentials' }, 401);
     }
-    if (body.portal === 'MEMBER' && user.role !== 'MEMBER') {
-      return json({ error: 'Not a member account' }, 403);
+    const member = state.members.find((m) => m.userId === user.id) || null;
+    const portal = body.portal as 'MEMBER' | 'ADMIN';
+
+    if (portal === 'MEMBER') {
+      // Pure members, or staff with a linked member profile (dual identity)
+      if (!member) {
+        return json({ error: 'No member profile linked to this account' }, 403);
+      }
+    } else if (portal === 'ADMIN') {
+      if (!isStaff(user.role)) {
+        return json({ error: 'Not a staff account' }, 403);
+      }
+    } else {
+      return json({ error: 'Invalid portal' }, 400);
     }
-    if (body.portal === 'ADMIN' && user.role === 'MEMBER') {
-      return json({ error: 'Not a staff account' }, 403);
+
+    setSession({ userId: user.id, portal });
+    const auth = getAuth(state);
+    return json({ success: true, ...auth });
+  }
+
+  if (apiPath === '/api/auth/switch-portal' && method === 'POST') {
+    const session = getSession();
+    if (!session) return json({ error: 'Not signed in' }, 401);
+    const user = state.users.find((u) => u.id === session.userId);
+    if (!user) return json({ error: 'Not signed in' }, 401);
+    const member = state.members.find((m) => m.userId === user.id) || null;
+    const portal = body.portal as 'MEMBER' | 'ADMIN';
+
+    if (portal === 'MEMBER') {
+      if (!isStaff(user.role) || !member) {
+        return json({ error: 'Cannot switch to member view' }, 403);
+      }
+    } else if (portal === 'ADMIN') {
+      if (!isStaff(user.role)) {
+        return json({ error: 'Cannot switch to staff view' }, 403);
+      }
+    } else {
+      return json({ error: 'Invalid portal' }, 400);
     }
-    setSession({ userId: user.id, portal: body.portal });
-    const member = user.role === 'MEMBER' ? state.members.find((m) => m.userId === user.id) : null;
-    return json({ success: true, user, member });
+
+    setSession({ userId: user.id, portal });
+    return json({ success: true, ...getAuth(state) });
   }
 
   if (apiPath === '/api/auth/logout' && method === 'POST') {
@@ -515,10 +550,6 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     const pendingWithdrawals = state.fundRequests.filter((r) => r.type === 'WITHDRAWAL' && r.status === 'PENDING');
     const pendingLoans = state.loans.filter((l) => l.status === 'PENDING_APPROVAL');
     const pool = coOpPoolTotals(state);
-    const compliancePaid = state.obligations.filter((o) => {
-      const cur = state.obligations[0]?.monthPeriod;
-      return o.monthPeriod === (state.obligations.find((x) => true) && o.status === 'PAID');
-    });
     // current period compliance
     const periods = [...new Set(state.obligations.map((o) => o.monthPeriod))].sort().reverse();
     const currentPeriod = periods[0];
@@ -549,7 +580,7 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
   const appApprove = apiPath.match(/^\/api\/admin\/applications\/([^/]+)\/approve$/);
   if (appApprove && method === 'POST') {
     const user = requireStaff(state);
-    if (!user || !can(user.role, 'applications:write')) return json({ error: 'Only Super Admin can approve memberships' }, 403);
+    if (!user || !can(user.role, 'applications:write')) return json({ error: 'Only Super Admin or Admin can approve memberships' }, 403);
     const application = state.applications.find((a) => a.id === appApprove[1]);
     if (!application) return json({ error: 'Not found' }, 404);
     const membershipNumber = `SC-${String(state.members.length + 1).padStart(3, '0')}`;
@@ -604,7 +635,7 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
   const loanApprove = apiPath.match(/^\/api\/admin\/loans\/([^/]+)\/approve$/);
   if (loanApprove && method === 'POST') {
     const user = requireStaff(state);
-    if (!user || !can(user.role, 'loans:approve')) return json({ error: 'Only Super Admin can approve loans' }, 403);
+    if (!user || !can(user.role, 'loans:approve')) return json({ error: 'Only Super Admin or Admin can approve loans' }, 403);
     const loan = state.loans.find((l) => l.id === loanApprove[1]);
     if (!loan) return json({ error: 'Not found' }, 404);
     loan.status = 'APPROVED';
@@ -677,7 +708,7 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
   const memberStatus = apiPath.match(/^\/api\/admin\/members\/([^/]+)\/status$/);
   if (memberStatus && method === 'POST') {
     const user = requireStaff(state);
-    if (!user || !can(user.role, 'members:write')) return json({ error: 'Only Super Admin can change member status' }, 403);
+    if (!user || !can(user.role, 'members:write')) return json({ error: 'Only Super Admin or Admin can change member status' }, 403);
     const member = state.members.find((m) => m.id === memberStatus[1]);
     if (!member) return json({ error: 'Not found' }, 404);
     member.status = body.status;

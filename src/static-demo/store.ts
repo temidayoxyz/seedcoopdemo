@@ -1,9 +1,11 @@
 import { createDefaultState, type CoopState } from '../data/defaultState';
+import { isStaff } from '../lib/roles';
 
 export type { CoopState };
 
-const STORAGE_KEY = 'seedcoop-state-v2';
-const SESSION_KEY = 'seedcoop-session-v2';
+// v4: staff names — Dan Segun / Ola Dayo / Tunde Bakare
+const STORAGE_KEY = 'seedcoop-state-v4';
+const SESSION_KEY = 'seedcoop-session-v4';
 
 export type Session = { userId: string; portal: 'MEMBER' | 'ADMIN' };
 
@@ -47,12 +49,34 @@ export function setSession(session: Session | null) {
 
 export function getAuth(state: CoopState) {
   const session = getSession();
-  if (!session) return { user: null as any, member: null as any };
+  if (!session) {
+    return {
+      user: null as any,
+      member: null as any,
+      portal: null as 'MEMBER' | 'ADMIN' | null,
+      canSwitchToMember: false,
+      canSwitchToAdmin: false,
+    };
+  }
   const user = state.users.find((u) => u.id === session.userId) || null;
-  if (!user) return { user: null, member: null };
-  const member =
-    user.role === 'MEMBER'
-      ? state.members.find((m) => m.userId === user.id) || null
-      : null;
-  return { user, member };
+  if (!user) {
+    return {
+      user: null,
+      member: null,
+      portal: null as 'MEMBER' | 'ADMIN' | null,
+      canSwitchToMember: false,
+      canSwitchToAdmin: false,
+    };
+  }
+  // Staff are members first — always resolve linked member profile when present
+  const member = state.members.find((m) => m.userId === user.id) || null;
+  const canSwitchToMember = isStaff(user.role) && !!member;
+  const canSwitchToAdmin = isStaff(user.role);
+  return {
+    user,
+    member,
+    portal: session.portal,
+    canSwitchToMember,
+    canSwitchToAdmin,
+  };
 }

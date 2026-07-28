@@ -142,7 +142,8 @@ export function AboutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { role: 'Chairman', name: 'Chukwudi Okafor', img: 'https://i.pravatar.cc/300?img=11' },
-              { role: 'Treasurer', name: 'Aisha Nuhu', img: 'https://i.pravatar.cc/300?img=5' },
+              { role: 'Treasurer', name: 'Tunde Bakare', img: 'https://i.pravatar.cc/300?img=12' },
+
               { role: 'Secretary', name: 'Emeka Obi', img: 'https://i.pravatar.cc/300?img=8' },
               { role: 'Loan Officer', name: 'Oluwaseun Adebayo', img: 'https://i.pravatar.cc/300?img=10' }
             ].map((leader, i) => (

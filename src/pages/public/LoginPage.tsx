@@ -98,7 +98,7 @@ export function LoginPage() {
             <Shield className="w-5 h-5 text-seed-700" />
             <div>
               <h2 className="font-bold text-seed-950">Staff</h2>
-              <p className="text-xs text-ink-600">Roles with different powers and duties</p>
+              <p className="text-xs text-ink-600">Super Admin, Admin, and Treasurer — distinct powers. Each is also a member and can switch portals.</p>
             </div>
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -113,10 +113,16 @@ export function LoginPage() {
                 <div className="font-semibold text-seed-950">{p.label}</div>
                 <div className="text-xs font-medium text-gold-600 mt-0.5">
                   {ROLE_LABELS[p.role as keyof typeof ROLE_LABELS] || p.subtitle}
+                  {p.membershipNumber ? (
+                    <span className="text-ink-500 font-mono font-normal"> · {p.membershipNumber}</span>
+                  ) : null}
                 </div>
                 <p className="text-xs text-ink-600 mt-2 leading-relaxed">
                   {ROLE_DUTIES[p.role as keyof typeof ROLE_DUTIES] || p.subtitle}
                 </p>
+                {p.tagline && (
+                  <p className="text-[11px] text-seed-700 mt-2">{p.tagline}</p>
+                )}
                 <div className="mt-3 text-sm font-medium text-seed-800">
                   {loadingEmail === p.email ? 'Signing in…' : `Continue as ${p.subtitle}`}
                 </div>

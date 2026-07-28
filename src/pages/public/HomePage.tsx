@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ChevronRight, FileText, Shield, Users, ArrowRight } from 'lucide-react';
+import {
+  CheckCircle2, FileText, Shield, Users, ArrowRight,
+  Wallet, Layers, Landmark, Scale, Coins, BadgeCheck,
+} from 'lucide-react';
 
 export function HomePage() {
   return (
@@ -111,38 +114,76 @@ export function HomePage() {
       {/* Section 2: How contributions become progress */}
       <section className="py-24 bg-white border-t border-ink-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-gold-700 mb-3">The cycle</p>
             <h2 className="text-3xl font-bold text-seed-950 mb-4">How contributions become progress</h2>
-            <p className="text-ink-600">A living ledger where every member's participation builds our collective capacity.</p>
+            <p className="text-ink-600">
+              A living ledger where every member&apos;s thrift builds the shared reserve — and the reserve funds fair opportunity.
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-[14px] bg-ivory-50 border border-ink-200">
-              <div className="w-12 h-12 rounded-full bg-seed-100 flex items-center justify-center mb-6">
-                <span className="text-seed-800 font-bold">1</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Contribute</h3>
-              <p className="text-ink-600">Members make regular monthly contributions, building individual savings within the cooperative.</p>
-            </div>
-            <div className="p-8 rounded-[14px] bg-ivory-50 border border-ink-200 relative">
-              <div className="hidden md:block absolute top-1/2 -left-4 -translate-y-1/2 text-ink-300">
-                <ChevronRight className="w-8 h-8" />
-              </div>
-              <div className="w-12 h-12 rounded-full bg-seed-100 flex items-center justify-center mb-6">
-                <span className="text-seed-800 font-bold">2</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Pool Resources</h3>
-              <p className="text-ink-600">Contributions form a shared reserve, creating collective financial power for the entire community.</p>
-            </div>
-            <div className="p-8 rounded-[14px] bg-ivory-50 border border-ink-200 relative">
-              <div className="hidden md:block absolute top-1/2 -left-4 -translate-y-1/2 text-ink-300">
-                <ChevronRight className="w-8 h-8" />
-              </div>
-              <div className="w-12 h-12 rounded-full bg-seed-100 flex items-center justify-center mb-6">
-                <span className="text-seed-800 font-bold">3</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Access Opportunity</h3>
-              <p className="text-ink-600">Eligible members can access loans at fair rates, supported by the strength of the shared reserve.</p>
+
+          <div className="relative">
+            {/* Process rail (desktop) */}
+            <div
+              className="hidden md:block absolute top-[4.25rem] left-[12%] right-[12%] h-px bg-gradient-to-r from-seed-200 via-gold-500/60 to-seed-200"
+              aria-hidden
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+              {[
+                {
+                  step: '01',
+                  title: 'Contribute',
+                  blurb: 'Members pay monthly thrift into their personal position. Consistency builds standing and eligibility.',
+                  icon: Wallet,
+                  accent: 'from-seed-800 to-seed-700',
+                  chip: 'Individual thrift',
+                },
+                {
+                  step: '02',
+                  title: 'Pool resources',
+                  blurb: 'Contributions feed one cooperative reserve — collective capacity greater than any single balance.',
+                  icon: Layers,
+                  accent: 'from-seed-700 to-seed-600',
+                  chip: 'Shared reserve',
+                },
+                {
+                  step: '03',
+                  title: 'Access opportunity',
+                  blurb: 'Eligible members borrow at fair rates. Repayments restore the pool for the next member.',
+                  icon: Landmark,
+                  accent: 'from-seed-900 to-seed-800',
+                  chip: 'Loans & growth',
+                },
+              ].map((card) => (
+                <article
+                  key={card.step}
+                  className="group relative flex flex-col rounded-[18px] border border-ink-200 bg-ivory-50/80 overflow-hidden shadow-[0_1px_0_rgba(16,45,37,0.04)] hover:border-seed-300 hover:shadow-md transition-all duration-300"
+                >
+                  <div className={`h-1.5 w-full bg-gradient-to-r ${card.accent}`} />
+                  <div className="p-7 sm:p-8 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-4 mb-6">
+                      <div className="relative">
+                        <div className="w-14 h-14 rounded-[14px] bg-seed-950 text-gold-500 flex items-center justify-center shadow-sm ring-1 ring-seed-800/40 group-hover:scale-[1.03] transition-transform">
+                          <card.icon className="w-6 h-6" strokeWidth={1.75} />
+                        </div>
+                        <span className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-white border border-ink-200 text-[10px] font-bold text-seed-800 flex items-center justify-center tabular-nums">
+                          {card.step}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium tracking-wide uppercase text-seed-700 bg-seed-50 border border-seed-100 px-2.5 py-1 rounded-full">
+                        {card.chip}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-semibold text-seed-950 mb-2 tracking-tight">{card.title}</h3>
+                    <p className="text-ink-600 text-[15px] leading-relaxed flex-1">{card.blurb}</p>
+                    <div className="mt-6 pt-5 border-t border-ink-100 flex items-center gap-2 text-xs font-medium text-seed-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
+                      Recorded on the living ledger
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </div>
@@ -266,33 +307,103 @@ export function HomePage() {
       {/* Section 6: Governance */}
       <section className="py-24 bg-ivory-50 border-t border-ink-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <p className="text-xs font-semibold tracking-[0.2em] uppercase text-gold-700 mb-3">Leadership</p>
             <h2 className="text-3xl font-bold text-seed-950 mb-4">Governed by members, for members</h2>
-            <p className="text-ink-600">Our cooperative is structured around clear policies and elected leadership to protect your contributions.</p>
+            <p className="text-ink-600">
+              Distinct staff roles protect thrift, approve loans, and move money — with clear separation of duties.
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             {[
-              { role: 'Chairman', initials: 'CO', name: 'Chukwudi Okafor' },
-              { role: 'Treasurer', initials: 'AN', name: 'Aisha Nuhu' },
-              { role: 'Secretary', initials: 'EO', name: 'Emeka Obi' },
-              { role: 'Loan Officer', initials: 'OA', name: 'Oluwaseun Adebayo' }
-            ].map((leader, i) => (
-              <div key={i} className="bg-white p-6 rounded-[14px] border border-ink-200 text-center">
-                <div className="w-16 h-16 rounded-full bg-seed-100 border-2 border-white mx-auto flex items-center justify-center text-xl font-bold text-seed-800 mb-4 shadow-sm">
-                  {leader.initials}
+              {
+                name: 'Dan Segun',
+                role: 'Super Admin',
+                initials: 'DS',
+                duty: 'Full platform control — membership, loans, funds, investments, and settings.',
+                icon: Scale,
+                membership: 'SC-008',
+                highlight: true,
+              },
+              {
+                name: 'Ola Dayo',
+                role: 'Admin',
+                initials: 'OD',
+                duty: 'Governance ops — applications, member status, and loan approval. No treasury writes.',
+                icon: BadgeCheck,
+                membership: 'SC-010',
+                highlight: false,
+              },
+              {
+                name: 'Tunde Bakare',
+                role: 'Treasurer',
+                initials: 'TB',
+                duty: 'Money movement — contributions, deposits, withdrawals, disbursement, and dividends.',
+                icon: Coins,
+                membership: 'SC-009',
+                highlight: false,
+              },
+            ].map((leader) => (
+              <article
+                key={leader.role}
+                className={`relative rounded-[18px] overflow-hidden border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${
+                  leader.highlight
+                    ? 'bg-seed-950 border-seed-800 text-white shadow-md'
+                    : 'bg-white border-ink-200 text-ink-950'
+                }`}
+              >
+                <div className={`h-1 w-full ${leader.highlight ? 'bg-gold-500' : 'bg-seed-200'}`} />
+                <div className="p-7 sm:p-8">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${
+                        leader.highlight
+                          ? 'bg-seed-800 text-gold-500 ring-2 ring-gold-500/40'
+                          : 'bg-seed-50 text-seed-800 ring-2 ring-white shadow-sm border border-seed-100'
+                      }`}
+                    >
+                      {leader.initials}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className={`font-semibold text-lg tracking-tight truncate ${leader.highlight ? 'text-white' : 'text-seed-950'}`}>
+                        {leader.name}
+                      </h4>
+                      <p className={`text-sm font-medium ${leader.highlight ? 'text-gold-500' : 'text-gold-700'}`}>
+                        {leader.role}
+                      </p>
+                      <p className={`text-[11px] font-mono mt-0.5 ${leader.highlight ? 'text-seed-300' : 'text-ink-400'}`}>
+                        {leader.membership}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`flex items-start gap-3 rounded-[12px] p-4 ${
+                      leader.highlight ? 'bg-seed-900/80 border border-seed-800' : 'bg-ivory-50 border border-ink-100'
+                    }`}
+                  >
+                    <leader.icon
+                      className={`w-5 h-5 shrink-0 mt-0.5 ${leader.highlight ? 'text-gold-500' : 'text-seed-700'}`}
+                      strokeWidth={1.75}
+                    />
+                    <p className={`text-sm leading-relaxed ${leader.highlight ? 'text-seed-100' : 'text-ink-600'}`}>
+                      {leader.duty}
+                    </p>
+                  </div>
                 </div>
-                <h4 className="font-semibold text-seed-950">{leader.name}</h4>
-                <p className="text-sm text-ink-500 mt-1">{leader.role}</p>
-              </div>
+              </article>
             ))}
           </div>
-          <div className="mt-12 flex justify-center gap-6">
-            <div className="flex items-center gap-2 text-sm text-ink-600 bg-white px-4 py-2 rounded-full border border-ink-200">
-              <Shield className="w-4 h-4 text-seed-600" /> Strict Data Protection
+
+          <div className="mt-12 flex flex-wrap justify-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-ink-600 bg-white px-4 py-2 rounded-full border border-ink-200 shadow-sm">
+              <Shield className="w-4 h-4 text-seed-600" /> Strict data protection
             </div>
-            <div className="flex items-center gap-2 text-sm text-ink-600 bg-white px-4 py-2 rounded-full border border-ink-200">
-              <Users className="w-4 h-4 text-seed-600" /> Member-Voted Bylaws
+            <div className="flex items-center gap-2 text-sm text-ink-600 bg-white px-4 py-2 rounded-full border border-ink-200 shadow-sm">
+              <Users className="w-4 h-4 text-seed-600" /> Member-voted bylaws
+            </div>
+            <div className="flex items-center gap-2 text-sm text-ink-600 bg-white px-4 py-2 rounded-full border border-ink-200 shadow-sm">
+              <Scale className="w-4 h-4 text-seed-600" /> Separation of duties
             </div>
           </div>
         </div>

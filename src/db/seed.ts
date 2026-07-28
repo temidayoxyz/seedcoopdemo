@@ -28,11 +28,12 @@ async function seed() {
     const now = getUnixTime(new Date());
 
     const adminId = uuidv4();
+    const treasurerId = uuidv4();
+    const opsAdminId = uuidv4();
     await db.insert(schema.users).values([
       { id: adminId, email: 'admin@seedcoop.demo', passwordHash: 'demo123', role: 'SUPER_ADMIN', createdAt: now, updatedAt: now },
-      { id: uuidv4(), email: 'treasurer@seedcoop.demo', passwordHash: 'demo123', role: 'TREASURER', createdAt: now, updatedAt: now },
-      { id: uuidv4(), email: 'loans@seedcoop.demo', passwordHash: 'demo123', role: 'LOAN_OFFICER', createdAt: now, updatedAt: now },
-      { id: uuidv4(), email: 'auditor@seedcoop.demo', passwordHash: 'demo123', role: 'AUDITOR', createdAt: now, updatedAt: now },
+      { id: treasurerId, email: 'treasurer@seedcoop.demo', passwordHash: 'demo123', role: 'TREASURER', createdAt: now, updatedAt: now },
+      { id: opsAdminId, email: 'ops@seedcoop.demo', passwordHash: 'demo123', role: 'ADMIN', createdAt: now, updatedAt: now },
     ]);
 
     const adaUserId = uuidv4();
@@ -50,6 +51,18 @@ async function seed() {
     const temidayoMemberId = uuidv4();
 
     await db.insert(schema.members).values([
+      {
+        id: uuidv4(), userId: adminId, membershipNumber: 'SC-008', firstName: 'Dan', lastName: 'Segun', phoneNumber: '+2348010000008',
+        status: 'ACTIVE', totalContributionsKobo: 72000000, joinedAt: getUnixTime(subMonths(new Date(now * 1000), 36))
+      },
+      {
+        id: uuidv4(), userId: treasurerId, membershipNumber: 'SC-009', firstName: 'Tunde', lastName: 'Bakare', phoneNumber: '+2348010000009',
+        status: 'ACTIVE', totalContributionsKobo: 60000000, joinedAt: getUnixTime(subMonths(new Date(now * 1000), 30))
+      },
+      {
+        id: uuidv4(), userId: opsAdminId, membershipNumber: 'SC-010', firstName: 'Ola', lastName: 'Dayo', phoneNumber: '+2348010000010',
+        status: 'ACTIVE', totalContributionsKobo: 48000000, joinedAt: getUnixTime(subMonths(new Date(now * 1000), 24))
+      },
       {
         id: adaMemberId, userId: adaUserId, membershipNumber: 'SC-10042', firstName: 'John', lastName: 'Doe', phoneNumber: '+2348001234567',
         status: 'ACTIVE', totalContributionsKobo: 12000000, joinedAt: getUnixTime(subMonths(new Date(now * 1000), 6))

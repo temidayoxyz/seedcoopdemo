@@ -159,11 +159,17 @@ export function AdminLoans() {
                 </div>
               )}
 
-              {user.role === 'AUDITOR' && (
+              {selectedLoan.status === 'PENDING_APPROVAL' && !can(user.role, 'loans:approve') && (
                 <div className="px-6 py-3 border-t border-ink-200 bg-ink-50 text-xs text-ink-600">
-                  Auditor view — approve and disburse actions are disabled for your role.
+                  Loan approval requires Super Admin or Admin. Treasurer can disburse after approval.
                 </div>
               )}
+              {selectedLoan.status === 'APPROVED' && !can(user.role, 'loans:disburse') && (
+                <div className="px-6 py-3 border-t border-ink-200 bg-ink-50 text-xs text-ink-600">
+                  Loan disbursement requires Treasurer or Super Admin.
+                </div>
+              )}
+
             </div>
           ) : (
             <div className="h-full flex items-center justify-center border-2 border-dashed border-ink-200 rounded-[10px] text-ink-500">

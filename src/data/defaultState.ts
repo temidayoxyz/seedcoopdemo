@@ -38,7 +38,14 @@ export function createDefaultState() {
   // Stable IDs so links stay consistent after reset
   const adminUserId = uid('user', 1);
   const treasurerUserId = uid('user', 2);
-  const auditorUserId = uid('user', 3);
+  const opsAdminUserId = uid('user', 3);
+
+  // Staff are members first — dual identity (staff role + member thrift profile)
+  const staffMembers = [
+    { userId: adminUserId, memberId: uid('mem', 8), num: 'SC-008', first: 'Dan', last: 'Segun', email: 'admin@seedcoop.ng', phone: '+2348010000008', months: 36, savings: 72000000, role: 'SUPER_ADMIN' as const },
+    { userId: treasurerUserId, memberId: uid('mem', 9), num: 'SC-009', first: 'Tunde', last: 'Bakare', email: 'treasurer@seedcoop.ng', phone: '+2348010000009', months: 30, savings: 60000000, role: 'TREASURER' as const },
+    { userId: opsAdminUserId, memberId: uid('mem', 10), num: 'SC-010', first: 'Ola', last: 'Dayo', email: 'ops@seedcoop.ng', phone: '+2348010000010', months: 24, savings: 48000000, role: 'ADMIN' as const },
+  ];
 
   const m = [
     { userId: uid('user', 11), memberId: uid('mem', 1), num: 'SC-001', first: 'Ada', last: 'Okonkwo', email: 'ada.okonkwo@seedcoop.ng', phone: '+2348010000001', months: 18, savings: 36000000 },
@@ -51,9 +58,15 @@ export function createDefaultState() {
   ];
 
   const users = [
-    { id: adminUserId, email: 'admin@seedcoop.ng', passwordHash: PASSWORD, role: 'SUPER_ADMIN', displayName: 'Amaka Okoro', createdAt: monthsAgo(24), updatedAt: t },
-    { id: treasurerUserId, email: 'treasurer@seedcoop.ng', passwordHash: PASSWORD, role: 'TREASURER', displayName: 'Aisha Nuhu', createdAt: monthsAgo(24), updatedAt: t },
-    { id: auditorUserId, email: 'auditor@seedcoop.ng', passwordHash: PASSWORD, role: 'AUDITOR', displayName: 'Tunde Bakare', createdAt: monthsAgo(18), updatedAt: t },
+    ...staffMembers.map((s) => ({
+      id: s.userId,
+      email: s.email,
+      passwordHash: PASSWORD,
+      role: s.role,
+      displayName: `${s.first} ${s.last}`,
+      createdAt: monthsAgo(s.months),
+      updatedAt: t,
+    })),
     ...m.map((x) => ({
       id: x.userId,
       email: x.email,
@@ -65,17 +78,30 @@ export function createDefaultState() {
     })),
   ];
 
-  const members = m.map((x) => ({
-    id: x.memberId,
-    userId: x.userId,
-    membershipNumber: x.num,
-    firstName: x.first,
-    lastName: x.last,
-    phoneNumber: x.phone,
-    status: 'ACTIVE',
-    totalContributionsKobo: x.savings,
-    joinedAt: monthsAgo(x.months),
-  }));
+  const members = [
+    ...staffMembers.map((s) => ({
+      id: s.memberId,
+      userId: s.userId,
+      membershipNumber: s.num,
+      firstName: s.first,
+      lastName: s.last,
+      phoneNumber: s.phone,
+      status: 'ACTIVE',
+      totalContributionsKobo: s.savings,
+      joinedAt: monthsAgo(s.months),
+    })),
+    ...m.map((x) => ({
+      id: x.memberId,
+      userId: x.userId,
+      membershipNumber: x.num,
+      firstName: x.first,
+      lastName: x.last,
+      phoneNumber: x.phone,
+      status: 'ACTIVE',
+      totalContributionsKobo: x.savings,
+      joinedAt: monthsAgo(x.months),
+    })),
+  ];
 
   const monthly = 2000000; // ₦20,000
 
@@ -99,6 +125,13 @@ export function createDefaultState() {
     // SC-007 new — first obligation unpaid
     { id: uid('ob', 10), memberId: m[6].memberId, monthPeriod: period0, expectedAmountKobo: monthly, paidAmountKobo: 0, status: 'UNPAID', dueDate: daysFromNow(5) },
     { id: uid('ob', 11), memberId: m[6].memberId, monthPeriod: period1, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(-20) },
+    // Staff members — paid thrift (they're members first)
+    { id: uid('ob', 12), memberId: staffMembers[0].memberId, monthPeriod: period0, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(5) },
+    { id: uid('ob', 13), memberId: staffMembers[0].memberId, monthPeriod: period1, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(-25) },
+    { id: uid('ob', 14), memberId: staffMembers[1].memberId, monthPeriod: period0, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(5) },
+    { id: uid('ob', 15), memberId: staffMembers[1].memberId, monthPeriod: period1, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(-25) },
+    { id: uid('ob', 16), memberId: staffMembers[2].memberId, monthPeriod: period0, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(5) },
+    { id: uid('ob', 17), memberId: staffMembers[2].memberId, monthPeriod: period1, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(-25) },
   ];
 
   const emergencyId = uid('prod', 1);
@@ -444,9 +477,9 @@ export function createDefaultState() {
     /** Directory for login UI */
     personas: {
       staff: [
-        { email: 'admin@seedcoop.ng', role: 'SUPER_ADMIN', label: 'Amaka Okoro', subtitle: 'Super Admin', portal: 'ADMIN' as const },
-        { email: 'treasurer@seedcoop.ng', role: 'TREASURER', label: 'Aisha Nuhu', subtitle: 'Treasurer', portal: 'ADMIN' as const },
-        { email: 'auditor@seedcoop.ng', role: 'AUDITOR', label: 'Tunde Bakare', subtitle: 'Auditor', portal: 'ADMIN' as const },
+        { email: 'admin@seedcoop.ng', role: 'SUPER_ADMIN', label: 'Dan Segun', subtitle: 'Super Admin', portal: 'ADMIN' as const, membershipNumber: 'SC-008', tagline: 'Staff · also member SC-008 · switch portals anytime' },
+        { email: 'ops@seedcoop.ng', role: 'ADMIN', label: 'Ola Dayo', subtitle: 'Admin', portal: 'ADMIN' as const, membershipNumber: 'SC-010', tagline: 'Staff · also member SC-010 · switch portals anytime' },
+        { email: 'treasurer@seedcoop.ng', role: 'TREASURER', label: 'Tunde Bakare', subtitle: 'Treasurer', portal: 'ADMIN' as const, membershipNumber: 'SC-009', tagline: 'Staff · also member SC-009 · switch portals anytime' },
       ],
       members: m.map((x) => ({
         email: x.email,
@@ -470,6 +503,9 @@ function memberTagline(num: string): string {
     case 'SC-005': return 'Loan pending board approval';
     case 'SC-006': return 'Withdrawal pending';
     case 'SC-007': return 'New member · Building thrift';
+    case 'SC-008': return 'Super Admin · Strong thrift · No active loan';
+    case 'SC-009': return 'Treasurer · Strong thrift · No active loan';
+    case 'SC-010': return 'Admin · Strong thrift · No active loan';
     default: return 'Active member';
   }
 }

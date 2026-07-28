@@ -1,23 +1,31 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogOut, Home, PieChart, CreditCard, FileText, Bell, User,
-  ArrowDownCircle, ArrowUpCircle, Menu, X, PiggyBank,
+  ArrowDownCircle, ArrowUpCircle, Menu, X, PiggyBank, ArrowLeftRight, Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCallback, useEffect, useState } from 'react';
+import { ROLE_LABELS } from '../../lib/roles';
 
 export function MemberLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [member, setMember] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [canSwitchToAdmin, setCanSwitchToAdmin] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   const refreshMember = useCallback(() => {
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (!data.member) navigate('/login');
-        else setMember(data.member);
+        if (!data.member || data.portal !== 'MEMBER') navigate('/login');
+        else {
+          setMember(data.member);
+          setUser(data.user || null);
+          setCanSwitchToAdmin(!!data.canSwitchToAdmin);
+        }
       })
       .catch(() => navigate('/login'));
   }, [navigate]);
@@ -40,6 +48,28 @@ export function MemberLayout() {
     navigate('/login');
   };
 
+  const handleSwitchToAdmin = async () => {
+    setSwitching(true);
+    try {
+      const res = await fetch('/api/auth/switch-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ portal: 'ADMIN' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Switched to staff view');
+        navigate('/admin/dashboard');
+      } else {
+        toast.error(data.error || 'Could not switch view');
+      }
+    } catch {
+      toast.error('Could not switch view');
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   const navItems = [
     { name: 'Dashboard', path: '/member/dashboard', icon: Home },
     { name: 'Contributions', path: '/member/contributions', icon: PieChart },
@@ -56,6 +86,10 @@ export function MemberLayout() {
     return <div className="min-h-screen flex items-center justify-center bg-ivory-50">Loading…</div>;
   }
 
+  const staffRoleLabel = user && user.role !== 'MEMBER'
+    ? ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role
+    : null;
+
   return (
     <div className="min-h-screen flex bg-ivory-50 text-ink-950 font-sans relative">
       <aside className="w-64 bg-white border-r border-ink-200 hidden md:flex flex-col flex-shrink-0">
@@ -70,6 +104,12 @@ export function MemberLayout() {
         <div className="p-4 border-b border-ink-200">
           <div className="font-medium text-sm text-seed-950">{member.firstName} {member.lastName}</div>
           <div className="text-xs font-mono text-seed-700 mt-1">{member.membershipNumber}</div>
+          {staffRoleLabel && (
+            <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-gold-700 bg-gold-50 border border-gold-200 px-2 py-0.5 rounded-full">
+              <Shield className="w-3 h-3" />
+              Also {staffRoleLabel}
+            </div>
+          )}
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
@@ -88,7 +128,18 @@ export function MemberLayout() {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-ink-200">
+        <div className="p-4 border-t border-ink-200 space-y-1">
+          {canSwitchToAdmin && (
+            <button
+              type="button"
+              onClick={handleSwitchToAdmin}
+              disabled={switching}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-800 hover:bg-seed-50 disabled:opacity-50"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              {switching ? 'Switching…' : 'Switch to staff view'}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleLogout}
@@ -115,6 +166,9 @@ export function MemberLayout() {
         <div className="p-4 border-b border-ink-200">
           <div className="font-medium text-sm">{member.firstName} {member.lastName}</div>
           <div className="text-xs font-mono text-seed-700">{member.membershipNumber}</div>
+          {staffRoleLabel && (
+            <div className="mt-2 text-[11px] font-medium text-gold-700">Also {staffRoleLabel}</div>
+          )}
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
@@ -129,14 +183,39 @@ export function MemberLayout() {
             </Link>
           ))}
         </nav>
+        <div className="p-4 border-t border-ink-200 space-y-1">
+          {canSwitchToAdmin && (
+            <button
+              type="button"
+              onClick={handleSwitchToAdmin}
+              disabled={switching}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-800 hover:bg-seed-50"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              Switch to staff view
+            </button>
+          )}
+        </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white border-b border-ink-200 flex items-center px-4 md:hidden sticky top-0 z-30">
-          <button type="button" onClick={() => setIsMobileOpen(true)} className="p-2">
-            <Menu className="w-6 h-6" />
-          </button>
-          <span className="ml-2 font-semibold text-seed-950">{member.membershipNumber}</span>
+        <header className="h-14 bg-white border-b border-ink-200 flex items-center justify-between px-4 md:hidden sticky top-0 z-30">
+          <div className="flex items-center">
+            <button type="button" onClick={() => setIsMobileOpen(true)} className="p-2">
+              <Menu className="w-6 h-6" />
+            </button>
+            <span className="ml-2 font-semibold text-seed-950">{member.membershipNumber}</span>
+          </div>
+          {canSwitchToAdmin && (
+            <button
+              type="button"
+              onClick={handleSwitchToAdmin}
+              disabled={switching}
+              className="text-xs font-medium px-2.5 py-1 rounded-full bg-seed-50 text-seed-800 border border-seed-200"
+            >
+              Staff view
+            </button>
+          )}
         </header>
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet context={{ member, refreshMember }} />

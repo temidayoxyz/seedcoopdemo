@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Users, FileSignature, Coins, Landmark, FileBarChart,
   Settings, Mail, ArrowDownCircle, ArrowUpCircle, User, Menu, X, BookOpen, TrendingUp, PiggyBank,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,12 +29,19 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
+  const [member, setMember] = useState<any>(null);
+  const [canSwitchToMember, setCanSwitchToMember] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me').then((res) => res.json()).then((data) => {
-      if (!data.user || data.user.role === 'MEMBER') navigate('/login');
-      else setUser(data.user);
+      if (!data.user || data.portal !== 'ADMIN' || data.user.role === 'MEMBER') navigate('/login');
+      else {
+        setUser(data.user);
+        setMember(data.member || null);
+        setCanSwitchToMember(!!data.canSwitchToMember);
+      }
     }).catch(() => navigate('/login'));
   }, [navigate]);
 
@@ -52,6 +60,28 @@ export function AdminLayout() {
     });
     toast.success('Signed out');
     navigate('/login');
+  };
+
+  const handleSwitchToMember = async () => {
+    setSwitching(true);
+    try {
+      const res = await fetch('/api/auth/switch-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ portal: 'MEMBER' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Switched to member view');
+        navigate('/member/dashboard');
+      } else {
+        toast.error(data.error || 'Could not switch view');
+      }
+    } catch {
+      toast.error('Could not switch view');
+    } finally {
+      setSwitching(false);
+    }
   };
 
   if (!user) {
@@ -97,13 +127,27 @@ export function AdminLayout() {
         <div className="p-4 border-b border-seed-800">
           <div className="font-medium text-sm text-seed-100 truncate">{user.displayName || user.email}</div>
           <div className="text-xs text-gold-500 font-semibold mt-1">{roleLabel}</div>
+          {member?.membershipNumber && (
+            <div className="text-[11px] font-mono text-seed-400 mt-1">{member.membershipNumber}</div>
+          )}
           <p className="text-[11px] text-seed-300 mt-2 leading-snug">{duty}</p>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavLinks />
         </nav>
-        <div className="p-4 border-t border-seed-800">
-          <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-200 hover:bg-seed-900">
+        <div className="p-4 border-t border-seed-800 space-y-1">
+          {canSwitchToMember && (
+            <button
+              type="button"
+              onClick={handleSwitchToMember}
+              disabled={switching}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-gold-400 hover:bg-seed-900 disabled:opacity-50"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              {switching ? 'Switching…' : 'Switch to member view'}
+            </button>
+          )}
+          <button type="button" onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-200 hover:bg-seed-900">
             <LogOut className="w-4 h-4 text-seed-400" /> Sign out
           </button>
         </div>
@@ -121,10 +165,26 @@ export function AdminLayout() {
         <div className="p-4 border-b border-seed-800">
           <div className="text-sm">{user.displayName || user.email}</div>
           <div className="text-xs text-gold-500">{roleLabel}</div>
+          {member?.membershipNumber && (
+            <div className="text-[11px] font-mono text-seed-400 mt-1">{member.membershipNumber}</div>
+          )}
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavLinks onNavigate={() => setIsMobileOpen(false)} />
         </nav>
+        <div className="p-4 border-t border-seed-800 space-y-1">
+          {canSwitchToMember && (
+            <button
+              type="button"
+              onClick={handleSwitchToMember}
+              disabled={switching}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-gold-400 hover:bg-seed-900"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              Switch to member view
+            </button>
+          )}
+        </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -135,9 +195,22 @@ export function AdminLayout() {
             </button>
             <h2 className="font-semibold text-lg text-seed-950">{currentNav}</h2>
           </div>
-          <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-seed-50 text-seed-800 border border-seed-200">
-            {roleLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            {canSwitchToMember && (
+              <button
+                type="button"
+                onClick={handleSwitchToMember}
+                disabled={switching}
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-gold-50 text-gold-800 border border-gold-200 hover:bg-gold-100 disabled:opacity-50"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+                Member view
+              </button>
+            )}
+            <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-seed-50 text-seed-800 border border-seed-200">
+              {roleLabel}
+            </span>
+          </div>
         </header>
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet context={{ user }} />

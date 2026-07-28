@@ -144,7 +144,7 @@ export function AdminApplications() {
               )}
               {selectedApp.status === 'PENDING' && !can(user.role, 'applications:write') && (
                 <div className="px-6 py-3 border-t border-ink-200 bg-ink-50 text-xs text-ink-600">
-                  Only Super Admin can approve membership applications.
+                  Only Super Admin or Admin can approve membership applications.
                 </div>
               )}
             </div>

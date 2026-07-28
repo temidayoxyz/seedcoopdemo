@@ -4,27 +4,41 @@ import * as schema from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getUnixTime } from "date-fns";
+import { isStaff } from "../lib/roles";
 
 export const apiRouter = Router();
 
-// Demo auth middleware
+function requireStaffUser(req: any) {
+  const user = req.user;
+  if (!user || !isStaff(user.role) || req.portal !== 'ADMIN') return null;
+  return user;
+}
+
+// Demo auth middleware — portal cookies; staff may also hold a member profile
 apiRouter.use(async (req, res, next) => {
   const memberToken = req.cookies['seedcoop-member-demo-session'];
   const adminToken = req.cookies['seedcoop-admin-demo-session'];
-  
+
   if (memberToken) {
     const user = await db.query.users.findFirst({ where: eq(schema.users.id, memberToken) });
-    if (user && user.role === 'MEMBER') {
+    if (user) {
       const member = await db.query.members.findFirst({ where: eq(schema.members.userId, user.id) });
-      (req as any).user = user;
-      (req as any).member = member;
+      // Pure members or staff dual-identity in member portal
+      if (member && (user.role === 'MEMBER' || isStaff(user.role))) {
+        (req as any).user = user;
+        (req as any).member = member;
+        (req as any).portal = 'MEMBER';
+      }
     }
-  } 
-  
+  }
+
   if (!((req as any).user) && adminToken) {
     const user = await db.query.users.findFirst({ where: eq(schema.users.id, adminToken) });
-    if (user && user.role !== 'MEMBER') {
+    if (user && isStaff(user.role)) {
+      const member = await db.query.members.findFirst({ where: eq(schema.members.userId, user.id) });
       (req as any).user = user;
+      (req as any).member = member || null;
+      (req as any).portal = 'ADMIN';
     }
   }
   next();
@@ -33,27 +47,70 @@ apiRouter.use(async (req, res, next) => {
 apiRouter.post('/auth/login', async (req, res) => {
   const { email, password, portal } = req.body; // portal: 'MEMBER' | 'ADMIN'
   const user = await db.query.users.findFirst({ where: eq(schema.users.email, email) });
-  
+
   if (!user || user.passwordHash !== password) {
     return res.status(401).json({ error: 'Invalid demo credentials' });
   }
 
-  if (portal === 'MEMBER' && user.role !== 'MEMBER') {
-    return res.status(403).json({ error: 'Not a member account' });
-  }
-  
-  if (portal === 'ADMIN' && user.role === 'MEMBER') {
-    return res.status(403).json({ error: 'Not an admin account' });
-  }
+  const member = await db.query.members.findFirst({ where: eq(schema.members.userId, user.id) });
 
   if (portal === 'MEMBER') {
+    if (!member) {
+      return res.status(403).json({ error: 'No member profile linked to this account' });
+    }
     res.cookie('seedcoop-member-demo-session', user.id, { httpOnly: true });
     res.clearCookie('seedcoop-admin-demo-session', { httpOnly: true });
-  } else {
+  } else if (portal === 'ADMIN') {
+    if (!isStaff(user.role)) {
+      return res.status(403).json({ error: 'Not a staff account' });
+    }
     res.cookie('seedcoop-admin-demo-session', user.id, { httpOnly: true });
     res.clearCookie('seedcoop-member-demo-session', { httpOnly: true });
+  } else {
+    return res.status(400).json({ error: 'Invalid portal' });
   }
-  res.json({ success: true, user });
+
+  res.json({
+    success: true,
+    user,
+    member: member || null,
+    portal,
+    canSwitchToMember: isStaff(user.role) && !!member,
+    canSwitchToAdmin: isStaff(user.role),
+  });
+});
+
+apiRouter.post('/auth/switch-portal', async (req, res) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Not signed in' });
+
+  const member = await db.query.members.findFirst({ where: eq(schema.members.userId, user.id) });
+  const portal = req.body.portal as 'MEMBER' | 'ADMIN';
+
+  if (portal === 'MEMBER') {
+    if (!isStaff(user.role) || !member) {
+      return res.status(403).json({ error: 'Cannot switch to member view' });
+    }
+    res.cookie('seedcoop-member-demo-session', user.id, { httpOnly: true });
+    res.clearCookie('seedcoop-admin-demo-session', { httpOnly: true });
+  } else if (portal === 'ADMIN') {
+    if (!isStaff(user.role)) {
+      return res.status(403).json({ error: 'Cannot switch to staff view' });
+    }
+    res.cookie('seedcoop-admin-demo-session', user.id, { httpOnly: true });
+    res.clearCookie('seedcoop-member-demo-session', { httpOnly: true });
+  } else {
+    return res.status(400).json({ error: 'Invalid portal' });
+  }
+
+  res.json({
+    success: true,
+    user,
+    member: member || null,
+    portal,
+    canSwitchToMember: isStaff(user.role) && !!member,
+    canSwitchToAdmin: isStaff(user.role),
+  });
 });
 
 apiRouter.post('/auth/logout', (req, res) => {
@@ -64,11 +121,17 @@ apiRouter.post('/auth/logout', (req, res) => {
 });
 
 apiRouter.get('/auth/me', (req, res) => {
-  if ((req as any).user) {
-    res.json({ user: (req as any).user, member: (req as any).member });
-  } else {
-    res.json({ user: null });
-  }
+  const user = (req as any).user;
+  if (!user) return res.json({ user: null });
+  const member = (req as any).member || null;
+  const portal = (req as any).portal || null;
+  res.json({
+    user,
+    member,
+    portal,
+    canSwitchToMember: isStaff(user.role) && !!member,
+    canSwitchToAdmin: isStaff(user.role),
+  });
 });
 
 // Member Routes
@@ -114,7 +177,7 @@ apiRouter.get('/members/dashboard', async (req, res) => {
 // Admin Routes
 apiRouter.get('/admin/dashboard', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const activeMembers = await db.query.members.findMany({ where: eq(schema.members.status, 'ACTIVE') });
   const pendingApplications = await db.query.membershipApplications.findMany({ where: eq(schema.membershipApplications.status, 'PENDING') });
@@ -282,7 +345,7 @@ apiRouter.post('/members/loans/apply', async (req, res) => {
 
 apiRouter.get('/admin/loans', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const loans = await db.query.loans.findMany({
     orderBy: [desc(schema.loans.appliedAt)]
@@ -311,8 +374,8 @@ apiRouter.get('/admin/loans', async (req, res) => {
 });
 
 apiRouter.post('/admin/loans/:id/approve', async (req, res) => {
-  const user = (req as any).user;
-  if (!user || !['SUPER_ADMIN', 'LOAN_OFFICER'].includes(user.role)) return res.status(403).json({ error: 'Unauthorized' });
+  const user = requireStaffUser(req);
+  if (!user || !['SUPER_ADMIN', 'ADMIN'].includes(user.role)) return res.status(403).json({ error: 'Unauthorized' });
 
   const { id } = req.params;
   const now = getUnixTime(new Date());
@@ -336,7 +399,7 @@ apiRouter.post('/admin/loans/:id/approve', async (req, res) => {
 });
 
 apiRouter.post('/admin/loans/:id/disburse', async (req, res) => {
-  const user = (req as any).user;
+  const user = requireStaffUser(req);
   if (!user || !['SUPER_ADMIN', 'TREASURER'].includes(user.role)) return res.status(403).json({ error: 'Unauthorized' });
 
   const { id } = req.params;
@@ -375,7 +438,7 @@ apiRouter.post('/admin/loans/:id/disburse', async (req, res) => {
 
 apiRouter.get('/admin/applications', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const applications = await db.query.membershipApplications.findMany({
     orderBy: [desc(schema.membershipApplications.submittedAt)]
@@ -386,7 +449,7 @@ apiRouter.get('/admin/applications', async (req, res) => {
 
 apiRouter.post('/admin/applications/:id/approve', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const { id } = req.params;
   const application = await db.query.membershipApplications.findFirst({
@@ -564,7 +627,7 @@ apiRouter.post('/members/loans/:id/cancel', async (req, res) => {
 // Admin Members Directory Endpoints
 apiRouter.get('/admin/members', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const membersList = await db.query.members.findMany({
     orderBy: [desc(schema.members.joinedAt)]
@@ -583,7 +646,7 @@ apiRouter.get('/admin/members', async (req, res) => {
 
 apiRouter.post('/admin/members/:id/status', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
   const { id } = req.params;
   const { status } = req.body;
 
@@ -598,7 +661,7 @@ apiRouter.post('/admin/members/:id/status', async (req, res) => {
 // Admin Contributions Endpoints
 apiRouter.get('/admin/contributions', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const obligations = await db.query.contributionObligations.findMany({
     orderBy: [desc(schema.contributionObligations.dueDate)]
@@ -621,7 +684,7 @@ apiRouter.get('/admin/contributions', async (req, res) => {
 
 apiRouter.post('/admin/contributions/record', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const { memberId, monthPeriod, amountKobo, description } = req.body;
   const member = await db.query.members.findFirst({ where: eq(schema.members.id, memberId) });
@@ -652,7 +715,7 @@ apiRouter.post('/admin/contributions/record', async (req, res) => {
 // Admin Email Outbox Endpoint
 apiRouter.get('/admin/outbox', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const messages = await db.query.demoEmailOutbox.findMany({
     orderBy: [desc(schema.demoEmailOutbox.sentAt)]
@@ -699,7 +762,7 @@ apiRouter.post('/members/profile/update', async (req, res) => {
 
 apiRouter.post('/admin/profile/update', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(403).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
 
   const { newPassword } = req.body;
   if (newPassword) {
@@ -711,7 +774,7 @@ apiRouter.post('/admin/profile/update', async (req, res) => {
 
 apiRouter.get('/admin/funds', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(401).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(401).json({ error: 'Unauthorized' });
   
   const requests = await db.query.fundRequests.findMany({
     orderBy: (reqs, { desc }) => [desc(reqs.requestedAt)]
@@ -731,7 +794,7 @@ apiRouter.get('/admin/funds', async (req, res) => {
 
 apiRouter.post('/admin/funds/:id/:action', async (req, res) => {
   const user = (req as any).user;
-  if (!user || user.role === 'MEMBER') return res.status(401).json({ error: 'Unauthorized' });
+  if (!requireStaffUser(req)) return res.status(401).json({ error: 'Unauthorized' });
   const { id, action } = req.params; // action = approve | reject
   
   const request = await db.query.fundRequests.findFirst({ where: eq(schema.fundRequests.id, id) });
