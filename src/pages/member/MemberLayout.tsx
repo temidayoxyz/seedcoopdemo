@@ -189,33 +189,51 @@ export function MemberLayout() {
               type="button"
               onClick={handleSwitchToAdmin}
               disabled={switching}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-800 hover:bg-seed-50"
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-800 hover:bg-seed-50 disabled:opacity-50"
             >
               <ArrowLeftRight className="w-4 h-4" />
               Switch to staff view
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-ink-600 hover:bg-ink-50"
+          >
+            <LogOut className="w-4 h-4" /> Sign out
+          </button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-14 bg-white border-b border-ink-200 flex items-center justify-between px-4 md:hidden sticky top-0 z-30">
-          <div className="flex items-center">
-            <button type="button" onClick={() => setIsMobileOpen(true)} className="p-2">
+          <div className="flex items-center min-w-0">
+            <button type="button" onClick={() => setIsMobileOpen(true)} className="p-2 shrink-0">
               <Menu className="w-6 h-6" />
             </button>
-            <span className="ml-2 font-semibold text-seed-950">{member.membershipNumber}</span>
+            <span className="ml-1 font-semibold text-seed-950 truncate">{member.membershipNumber}</span>
           </div>
-          {canSwitchToAdmin && (
+          <div className="flex items-center gap-2 shrink-0">
+            {canSwitchToAdmin && (
+              <button
+                type="button"
+                onClick={handleSwitchToAdmin}
+                disabled={switching}
+                className="text-xs font-medium px-2.5 py-1 rounded-full bg-seed-50 text-seed-800 border border-seed-200"
+              >
+                Staff view
+              </button>
+            )}
             <button
               type="button"
-              onClick={handleSwitchToAdmin}
-              disabled={switching}
-              className="text-xs font-medium px-2.5 py-1 rounded-full bg-seed-50 text-seed-800 border border-seed-200"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full text-ink-600 border border-ink-200 hover:bg-ink-50"
+              aria-label="Sign out"
             >
-              Staff view
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
             </button>
-          )}
+          </div>
         </header>
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet context={{ member, refreshMember }} />

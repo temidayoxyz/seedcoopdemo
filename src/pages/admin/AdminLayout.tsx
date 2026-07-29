@@ -178,12 +178,19 @@ export function AdminLayout() {
               type="button"
               onClick={handleSwitchToMember}
               disabled={switching}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-gold-400 hover:bg-seed-900"
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-gold-400 hover:bg-seed-900 disabled:opacity-50"
             >
               <ArrowLeftRight className="w-4 h-4" />
               Switch to member view
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-3 py-2 rounded-[6px] text-sm font-medium text-seed-200 hover:bg-seed-900"
+          >
+            <LogOut className="w-4 h-4 text-seed-400" /> Sign out
+          </button>
         </div>
       </aside>
 
@@ -210,6 +217,15 @@ export function AdminLayout() {
             <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-seed-50 text-seed-800 border border-seed-200">
               {roleLabel}
             </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="md:hidden inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full text-ink-600 border border-ink-200 hover:bg-ink-50"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign out
+            </button>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
