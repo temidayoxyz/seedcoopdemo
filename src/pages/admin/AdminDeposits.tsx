@@ -89,7 +89,9 @@ export function AdminDeposits() {
                       {new Date(req.requestedAt * 1000).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-xs text-ink-600">
-                      {req.notes || 'Member deposit'}
+                      <span className="inline-flex items-center gap-1 font-semibold text-[11px] bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-full">
+                        ⚡ Paystack / Direct
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-right font-semibold font-mono text-seed-950">
                       ₦{(req.amountKobo / 100).toLocaleString()}

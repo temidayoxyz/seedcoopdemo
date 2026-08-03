@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { toast } from 'sonner';
 import { User, Shield, Lock, Check } from 'lucide-react';

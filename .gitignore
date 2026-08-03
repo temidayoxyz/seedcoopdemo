@@ -19,3 +19,6 @@ data/*.db-*
 Thumbs.db
 .idea/
 .vscode/
+
+# Screenshots from verification runs (regenerate via scripts/)
+shots/

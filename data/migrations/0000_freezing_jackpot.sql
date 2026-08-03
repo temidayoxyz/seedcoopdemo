@@ -37,6 +37,22 @@ CREATE TABLE `demo_email_outbox` (
 	`sent_at` integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `fund_requests` (
+	`id` text PRIMARY KEY NOT NULL,
+	`member_id` text NOT NULL,
+	`reference` text NOT NULL,
+	`type` text NOT NULL,
+	`amount_kobo` integer NOT NULL,
+	`status` text NOT NULL,
+	`requested_at` integer NOT NULL,
+	`processed_at` integer,
+	`processed_by` text,
+	`notes` text,
+	FOREIGN KEY (`member_id`) REFERENCES `members`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`processed_by`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `fund_requests_reference_unique` ON `fund_requests` (`reference`);--> statement-breakpoint
 CREATE TABLE `guarantor_requests` (
 	`id` text PRIMARY KEY NOT NULL,
 	`loan_id` text NOT NULL,
@@ -52,6 +68,7 @@ CREATE TABLE `ledger_transactions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`reference` text NOT NULL,
 	`type` text NOT NULL,
+	`payment_source` text,
 	`status` text NOT NULL,
 	`description` text,
 	`amount_kobo` integer NOT NULL,
@@ -96,6 +113,8 @@ CREATE TABLE `members` (
 	`phone_number` text NOT NULL,
 	`status` text NOT NULL,
 	`total_contributions_kobo` integer DEFAULT 0 NOT NULL,
+	`deposit_balance_kobo` integer DEFAULT 0 NOT NULL,
+	`shares_balance_kobo` integer DEFAULT 0 NOT NULL,
 	`joined_at` integer NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -116,6 +135,45 @@ CREATE TABLE `membership_applications` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `membership_applications_reference_unique` ON `membership_applications` (`reference`);--> statement-breakpoint
+CREATE TABLE `order_items` (
+	`id` text PRIMARY KEY NOT NULL,
+	`order_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`product_name` text NOT NULL,
+	`unit_price_kobo` integer NOT NULL,
+	`quantity` integer NOT NULL,
+	FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE TABLE `orders` (
+	`id` text PRIMARY KEY NOT NULL,
+	`member_id` text NOT NULL,
+	`reference` text NOT NULL,
+	`status` text NOT NULL,
+	`total_kobo` integer NOT NULL,
+	`item_count` integer NOT NULL,
+	`note` text,
+	`placed_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`member_id`) REFERENCES `members`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `orders_reference_unique` ON `orders` (`reference`);--> statement-breakpoint
+CREATE TABLE `products` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`description` text,
+	`category` text NOT NULL,
+	`unit` text NOT NULL,
+	`price_kobo` integer NOT NULL,
+	`stock` integer DEFAULT 0 NOT NULL,
+	`is_active` integer DEFAULT 1 NOT NULL,
+	`image_emoji` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `repayment_schedules` (
 	`id` text PRIMARY KEY NOT NULL,
 	`loan_id` text NOT NULL,

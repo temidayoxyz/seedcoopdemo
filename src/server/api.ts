@@ -4,7 +4,8 @@ import * as schema from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getUnixTime } from "date-fns";
-import { isStaff } from "../lib/roles";
+import { isStaff, ROLE_LABELS } from "../lib/roles";
+import { resetDatabase } from "../db/initDb";
 
 export const apiRouter = Router();
 
@@ -42,6 +43,46 @@ apiRouter.use(async (req, res, next) => {
     }
   }
   next();
+});
+
+// Sign-in directory for the login page, built from the live database
+apiRouter.get('/auth/personas', async (req, res) => {
+  const usersList = await db.query.users.findMany();
+  const membersList = await db.query.members.findMany();
+  const membersByUser = Object.fromEntries(membersList.map((m) => [String(m.userId), m]));
+
+  const staff = usersList.filter((u) => isStaff(String(u.role))).map((u) => {
+    const m = membersByUser[String(u.id)];
+    return {
+      email: u.email,
+      role: u.role,
+      label: m ? `${m.firstName} ${m.lastName}` : u.email,
+      subtitle: ROLE_LABELS[u.role as keyof typeof ROLE_LABELS] || u.role,
+      portal: 'ADMIN',
+      membershipNumber: m?.membershipNumber,
+      tagline: 'Staff · also a member · switch portals anytime',
+    };
+  });
+
+  const members = usersList.filter((u) => u.role === 'MEMBER').map((u) => {
+    const m = membersByUser[String(u.id)];
+    return {
+      email: u.email,
+      role: 'MEMBER',
+      label: m ? `${m.firstName} ${m.lastName}` : u.email,
+      subtitle: m?.membershipNumber,
+      portal: 'MEMBER',
+      membershipNumber: m?.membershipNumber,
+      tagline: 'Member · deposits, contributions, loans, market',
+    };
+  });
+
+  res.json({ personas: { staff, members }, passwordHint: 'demo123' });
+});
+
+apiRouter.post('/system/reset', async (req, res) => {
+  await resetDatabase();
+  res.json({ success: true });
 });
 
 apiRouter.post('/auth/login', async (req, res) => {
@@ -120,16 +161,16 @@ apiRouter.post('/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
-apiRouter.get('/auth/me', (req, res) => {
+apiRouter.get('/auth/me', async (req, res) => {
   const user = (req as any).user;
   if (!user) return res.json({ user: null });
-  const member = (req as any).member || null;
+  const freshMember = await db.query.members.findFirst({ where: eq(schema.members.userId, user.id) });
   const portal = (req as any).portal || null;
   res.json({
     user,
-    member,
+    member: freshMember || null,
     portal,
-    canSwitchToMember: isStaff(user.role) && !!member,
+    canSwitchToMember: isStaff(user.role) && !!freshMember,
     canSwitchToAdmin: isStaff(user.role),
   });
 });
@@ -139,7 +180,9 @@ apiRouter.get('/members/dashboard', async (req, res) => {
   const member = (req as any).member;
   if (!member) return res.status(401).json({ error: 'Unauthorized' });
 
-  // Get active loan, next repayment, recent transactions
+  // Always fetch fresh member from DB so deposit balance and shares update instantly
+  const freshMember = await db.query.members.findFirst({ where: eq(schema.members.id, member.id) });
+
   const loans = await db.query.loans.findMany({
     where: eq(schema.loans.memberId, member.id),
     orderBy: [desc(schema.loans.appliedAt)]
@@ -168,7 +211,7 @@ apiRouter.get('/members/dashboard', async (req, res) => {
   });
 
   res.json({
-    member,
+    member: freshMember || member,
     loans: enrichedLoans,
     obligations
   });
@@ -181,8 +224,10 @@ apiRouter.get('/admin/dashboard', async (req, res) => {
 
   const activeMembers = await db.query.members.findMany({ where: eq(schema.members.status, 'ACTIVE') });
   const pendingApplications = await db.query.membershipApplications.findMany({ where: eq(schema.membershipApplications.status, 'PENDING') });
-  const allContributions = await db.query.members.findMany();
-  const totalContributions = allContributions.reduce((acc: number, curr: any) => acc + curr.totalContributionsKobo, 0);
+  const allMembers = await db.query.members.findMany();
+  const totalContributions = allMembers.reduce((acc: number, curr: any) => acc + curr.totalContributionsKobo, 0);
+  const totalDepositWalletBalance = allMembers.reduce((acc: number, curr: any) => acc + (curr.depositBalanceKobo || 0), 0);
+  const totalShareCapital = allMembers.reduce((acc: number, curr: any) => acc + (curr.sharesBalanceKobo || 0), 0);
   
   const activeLoans = await db.query.loans.findMany({ where: eq(schema.loans.status, 'ACTIVE') });
   const activeLoanPortfolio = activeLoans.reduce((acc: number, curr: any) => acc + (curr.totalDueKobo - curr.paidKobo), 0);
@@ -194,16 +239,31 @@ apiRouter.get('/admin/dashboard', async (req, res) => {
 
   const recentTransactions = await db.query.ledgerTransactions.findMany({
     orderBy: [desc(schema.ledgerTransactions.date)],
+    limit: 10
+  });
+
+  const recentDeposits = await db.query.fundRequests.findMany({
+    where: eq(schema.fundRequests.type, 'DEPOSIT'),
+    orderBy: [desc(schema.fundRequests.requestedAt)],
     limit: 5
   });
+
+  const membersMap = Object.fromEntries(allMembers.map(m => [m.id, m]));
+  const enrichedRecentDeposits = recentDeposits.map(d => ({
+    ...d,
+    member: membersMap[d.memberId]
+  }));
 
   res.json({
     activeMembers: activeMembers.length,
     pendingApplications: pendingApplications.length,
     totalContributions,
+    totalDepositWalletBalance,
+    totalShareCapital,
     activeLoanPortfolio,
     recentApplications,
-    recentTransactions
+    recentTransactions,
+    recentDeposits: enrichedRecentDeposits
   });
 });
 
@@ -232,7 +292,6 @@ apiRouter.post('/members/contributions/simulate-payment', async (req, res) => {
   const now = getUnixTime(new Date());
   const ref = `DEMO-PAY-${Math.floor(10000 + Math.random() * 90000)}`;
 
-  // Run as a faux-transaction using Promise.all since Better-Sqlite3 driver supports proper transactions but drizzle simplifies it.
   await db.update(schema.contributionObligations)
     .set({ 
       paidAmountKobo: obligation.paidAmountKobo + amountToPay,
@@ -250,8 +309,9 @@ apiRouter.post('/members/contributions/simulate-payment', async (req, res) => {
     id: uuidv4(),
     reference: ref,
     type: 'CONTRIBUTION_PAYMENT',
+    paymentSource: 'PAYSTACK',
     status: 'COMPLETED',
-    description: `Demo payment for ${obligation.monthPeriod}`,
+    description: `Direct payment (Paystack) for ${obligation.monthPeriod}`,
     amountKobo: amountToPay,
     date: now
   });
@@ -545,7 +605,7 @@ apiRouter.post('/members/funds/request', async (req, res) => {
   const now = getUnixTime(new Date());
 
   if (type === 'DEPOSIT') {
-    // Deposits do not need approval; auto-approve and credit balance directly
+    // Deposits do not need approval; auto-approve and credit deposit balance directly
     await db.insert(schema.fundRequests).values({
       id,
       memberId: member.id,
@@ -558,15 +618,16 @@ apiRouter.post('/members/funds/request', async (req, res) => {
       notes,
     });
 
-    const newBalance = member.totalContributionsKobo + amountKobo;
-    await db.update(schema.members).set({ totalContributionsKobo: newBalance }).where(eq(schema.members.id, member.id));
+    const newDepositBalance = (member.depositBalanceKobo || 0) + amountKobo;
+    await db.update(schema.members).set({ depositBalanceKobo: newDepositBalance }).where(eq(schema.members.id, member.id));
 
     await db.insert(schema.ledgerTransactions).values({
       id: uuidv4(),
       reference: `TXN-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
-      type: 'CONTRIBUTION_PAYMENT',
+      type: 'DEPOSIT_FUNDING',
+      paymentSource: 'PAYSTACK',
       status: 'COMPLETED',
-      description: `Member Deposit - ${reference}`,
+      description: `Member Deposit Wallet Top-Up - ${reference}`,
       amountKobo,
       date: now,
     });
@@ -585,6 +646,143 @@ apiRouter.post('/members/funds/request', async (req, res) => {
   }
 
   res.json({ success: true });
+});
+
+// Member Deposit Allocation Endpoint
+apiRouter.post('/members/deposits/allocate', async (req, res) => {
+  const member = (req as any).member;
+  if (!member) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { contributionKobo = 0, sharesKobo = 0, loanRepaymentKobo = 0, loanId } = req.body;
+  const cKobo = Math.max(0, Number(contributionKobo) || 0);
+  const sKobo = Math.max(0, Number(sharesKobo) || 0);
+  const lKobo = Math.max(0, Number(loanRepaymentKobo) || 0);
+  const totalAllocation = cKobo + sKobo + lKobo;
+
+  if (totalAllocation <= 0) {
+    return res.status(400).json({ error: 'Allocation amount must be greater than zero' });
+  }
+
+  const freshMember = await db.query.members.findFirst({ where: eq(schema.members.id, member.id) });
+  if (!freshMember) return res.status(404).json({ error: 'Member profile not found' });
+
+  if (totalAllocation > (freshMember.depositBalanceKobo || 0)) {
+    return res.status(400).json({ error: 'Insufficient funds in Deposit Balance' });
+  }
+
+  let loanToUpdate: any = null;
+  if (lKobo > 0) {
+    if (!loanId) return res.status(400).json({ error: 'Loan target required for loan repayment' });
+    loanToUpdate = await db.query.loans.findFirst({ where: eq(schema.loans.id, loanId) });
+    if (!loanToUpdate || loanToUpdate.memberId !== freshMember.id) {
+      return res.status(400).json({ error: 'Invalid active loan specified' });
+    }
+    const outstandingKobo = loanToUpdate.totalDueKobo - loanToUpdate.paidKobo;
+    if (lKobo > outstandingKobo) {
+      return res.status(400).json({ error: `Loan repayment amount exceeds outstanding loan balance` });
+    }
+  }
+
+  const now = getUnixTime(new Date());
+  let newDepositBalance = (freshMember.depositBalanceKobo || 0) - totalAllocation;
+  let newContributionsBalance = freshMember.totalContributionsKobo;
+  let newSharesBalance = freshMember.sharesBalanceKobo || 0;
+
+  if (cKobo > 0) {
+    newContributionsBalance += cKobo;
+    const obligations = await db.query.contributionObligations.findMany({
+      where: eq(schema.contributionObligations.memberId, freshMember.id),
+      orderBy: (obs, { asc }) => [asc(obs.dueDate)]
+    });
+
+    let remainingForObligations = cKobo;
+    for (const ob of obligations) {
+      if (remainingForObligations <= 0) break;
+      const owed = ob.expectedAmountKobo - ob.paidAmountKobo;
+      if (owed > 0) {
+        const payAmount = Math.min(owed, remainingForObligations);
+        const newPaid = ob.paidAmountKobo + payAmount;
+        const newStatus = newPaid >= ob.expectedAmountKobo ? 'PAID' : 'PARTIAL';
+        await db.update(schema.contributionObligations)
+          .set({ paidAmountKobo: newPaid, status: newStatus })
+          .where(eq(schema.contributionObligations.id, ob.id));
+        remainingForObligations -= payAmount;
+      }
+    }
+
+    await db.insert(schema.ledgerTransactions).values({
+      id: uuidv4(),
+      reference: `ALLOC-SAV-${Math.floor(10000 + Math.random() * 90000)}`,
+      type: 'DEPOSIT_TO_CONTRIBUTION',
+      paymentSource: 'DEPOSIT_WALLET',
+      status: 'COMPLETED',
+      description: 'Allocation from Deposit Fund to Savings/Contributions',
+      amountKobo: cKobo,
+      date: now
+    });
+  }
+
+  if (sKobo > 0) {
+    newSharesBalance += sKobo;
+    await db.insert(schema.ledgerTransactions).values({
+      id: uuidv4(),
+      reference: `ALLOC-SHR-${Math.floor(10000 + Math.random() * 90000)}`,
+      type: 'DEPOSIT_TO_SHARES',
+      paymentSource: 'DEPOSIT_WALLET',
+      status: 'COMPLETED',
+      description: 'Allocation from Deposit Fund to Share Capital',
+      amountKobo: sKobo,
+      date: now
+    });
+  }
+
+  if (lKobo > 0 && loanToUpdate) {
+    const newPaidKobo = loanToUpdate.paidKobo + lKobo;
+    const isCompleted = newPaidKobo >= loanToUpdate.totalDueKobo;
+    await db.update(schema.loans)
+      .set({
+        paidKobo: newPaidKobo,
+        status: isCompleted ? 'COMPLETED' : loanToUpdate.status
+      })
+      .where(eq(schema.loans.id, loanToUpdate.id));
+
+    await db.insert(schema.ledgerTransactions).values({
+      id: uuidv4(),
+      reference: `ALLOC-LN-${Math.floor(10000 + Math.random() * 90000)}`,
+      type: 'DEPOSIT_TO_LOAN_REPAYMENT',
+      paymentSource: 'DEPOSIT_WALLET',
+      status: 'COMPLETED',
+      description: `Allocation from Deposit Fund to Loan Repayment (${loanToUpdate.reference})`,
+      amountKobo: lKobo,
+      date: now
+    });
+  }
+
+  await db.update(schema.members).set({
+    depositBalanceKobo: newDepositBalance,
+    totalContributionsKobo: newContributionsBalance,
+    sharesBalanceKobo: newSharesBalance,
+  }).where(eq(schema.members.id, freshMember.id));
+
+  await db.insert(schema.auditLogs).values({
+    id: uuidv4(),
+    actorId: freshMember.userId,
+    actorRole: 'MEMBER',
+    action: 'ALLOCATE_DEPOSIT',
+    entityType: 'DEPOSIT_FUND',
+    entityReference: freshMember.id,
+    timestamp: now,
+    summary: `Allocated ₦${(totalAllocation / 100).toLocaleString()} from deposit fund (Savings: ₦${cKobo/100}, Shares: ₦${sKobo/100}, Loan: ₦${lKobo/100})`
+  });
+
+  res.json({
+    success: true,
+    balances: {
+      depositBalanceKobo: newDepositBalance,
+      totalContributionsKobo: newContributionsBalance,
+      sharesBalanceKobo: newSharesBalance
+    }
+  });
 });
 
 // Member cancels withdrawal fund request
@@ -768,6 +966,335 @@ apiRouter.post('/admin/profile/update', async (req, res) => {
   if (newPassword) {
     await db.update(schema.users).set({ passwordHash: newPassword }).where(eq(schema.users.id, user.id));
   }
+
+  res.json({ success: true });
+});
+
+// --- Market: cooperative shop for members ---
+apiRouter.get('/members/market/products', async (req, res) => {
+  const member = (req as any).member;
+  if (!member) return res.status(401).json({ error: 'Unauthorized' });
+
+  const products = await db.query.products.findMany({
+    where: eq(schema.products.isActive, 1),
+    orderBy: [desc(schema.products.createdAt)]
+  });
+
+  res.json({ products });
+});
+
+apiRouter.post('/members/market/orders', async (req, res) => {
+  const member = (req as any).member;
+  if (!member) return res.status(401).json({ error: 'Unauthorized' });
+
+  const freshMember = await db.query.members.findFirst({ where: eq(schema.members.id, member.id) });
+  if (!freshMember || freshMember.status !== 'ACTIVE') {
+    return res.status(403).json({ error: 'Only active members can shop the market' });
+  }
+
+  const { items, note } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Cart is empty' });
+  }
+
+  // Validate each line against the catalog, snapshot name/price at order time
+  const lines = [];
+  for (const line of items) {
+    const quantity = Math.max(1, Math.floor(Number(line.quantity) || 0));
+    const product = await db.query.products.findFirst({ where: eq(schema.products.id, line.productId) });
+    if (!product || !product.isActive) return res.status(400).json({ error: 'A product in your cart is no longer available' });
+    if (quantity > product.stock) return res.status(400).json({ error: `Only ${product.stock} × ${product.name} in stock` });
+    lines.push({ product, quantity });
+  }
+
+  const totalKobo = lines.reduce((sum, l) => sum + l.product.priceKobo * l.quantity, 0);
+  const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
+
+  if (totalKobo > (freshMember.depositBalanceKobo || 0)) {
+    return res.status(400).json({ error: 'Insufficient Deposit Balance — top up your wallet first' });
+  }
+
+  const now = getUnixTime(new Date());
+  const orderId = uuidv4();
+  const reference = `ORD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  await db.insert(schema.orders).values({
+    id: orderId,
+    memberId: freshMember.id,
+    reference,
+    status: 'PLACED',
+    totalKobo,
+    itemCount,
+    note: (note || '').trim().slice(0, 200) || null,
+    placedAt: now,
+    updatedAt: now,
+  });
+
+  for (const l of lines) {
+    await db.insert(schema.orderItems).values({
+      id: uuidv4(),
+      orderId,
+      productId: l.product.id,
+      productName: l.product.name,
+      unitPriceKobo: l.product.priceKobo,
+      quantity: l.quantity,
+    });
+    // Decrement stock
+    await db.update(schema.products)
+      .set({ stock: l.product.stock - l.quantity, updatedAt: now })
+      .where(eq(schema.products.id, l.product.id));
+  }
+
+  // Debit member's deposit wallet
+  const newBalance = (freshMember.depositBalanceKobo || 0) - totalKobo;
+  await db.update(schema.members)
+    .set({ depositBalanceKobo: newBalance })
+    .where(eq(schema.members.id, freshMember.id));
+
+  await db.insert(schema.ledgerTransactions).values({
+    id: uuidv4(),
+    reference: `MKT-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+    type: 'MARKET_PURCHASE',
+    paymentSource: 'DEPOSIT_WALLET',
+    status: 'COMPLETED',
+    description: `Market purchase ${reference} (${itemCount} item${itemCount === 1 ? '' : 's'})`,
+    amountKobo: totalKobo,
+    date: now,
+  });
+
+  await db.insert(schema.auditLogs).values({
+    id: uuidv4(),
+    actorId: freshMember.userId,
+    actorRole: 'MEMBER',
+    action: 'PLACE_ORDER',
+    entityType: 'ORDER',
+    entityReference: orderId,
+    timestamp: now,
+    summary: `Placed market order ${reference} for ₦${(totalKobo / 100).toLocaleString()}`,
+  });
+
+  await db.insert(schema.demoEmailOutbox).values({
+    id: uuidv4(),
+    recipient: (req as any).user.email,
+    template: 'ORDER_CONFIRMATION',
+    subject: `Order ${reference} confirmed — ${itemCount} item${itemCount === 1 ? '' : 's'}`,
+    payload: JSON.stringify({ orderReference: reference, totalKobo, itemCount }),
+    sentAt: now,
+  });
+
+  res.json({
+    success: true,
+    order: { id: orderId, reference, status: 'PLACED', totalKobo, itemCount },
+    depositBalanceKobo: newBalance,
+  });
+});
+
+apiRouter.get('/members/market/orders', async (req, res) => {
+  const member = (req as any).member;
+  if (!member) return res.status(401).json({ error: 'Unauthorized' });
+
+  const orders = await db.query.orders.findMany({
+    where: eq(schema.orders.memberId, member.id),
+    orderBy: [desc(schema.orders.placedAt)]
+  });
+
+  const enriched = await Promise.all(orders.map(async (order) => {
+    const items = await db.query.orderItems.findMany({
+      where: eq(schema.orderItems.orderId, order.id)
+    });
+    return { ...order, items };
+  }));
+
+  res.json({ orders: enriched });
+});
+
+apiRouter.get('/admin/market/products', async (req, res) => {
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
+
+  const products = await db.query.products.findMany({
+    orderBy: [desc(schema.products.createdAt)]
+  });
+
+  // Units sold per product for the ops view (cancelled orders don't count as sales)
+  const allOrders = await db.query.orders.findMany();
+  const cancelledOrderIds = new Set(allOrders.filter(o => o.status === 'CANCELLED').map(o => o.id));
+  const soldItems = await db.query.orderItems.findMany();
+  const soldMap: Record<string, number> = {};
+  for (const item of soldItems) {
+    if (cancelledOrderIds.has(String(item.orderId))) continue;
+    const productId = String(item.productId);
+    soldMap[productId] = (soldMap[productId] || 0) + Number(item.quantity);
+  }
+
+  res.json({ products: products.map(p => ({ ...p, soldCount: soldMap[p.id] || 0 })) });
+});
+
+apiRouter.post('/admin/market/products', async (req, res) => {
+  const user = requireStaffUser(req);
+  if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+  const { name, description, category, unit, priceKobo, stock, imageEmoji } = req.body;
+  if (!name || !category || !unit || !priceKobo || priceKobo <= 0) {
+    return res.status(400).json({ error: 'Name, category, unit and a positive price are required' });
+  }
+
+  const now = getUnixTime(new Date());
+  const id = uuidv4();
+  await db.insert(schema.products).values({
+    id,
+    name: String(name).trim().slice(0, 120),
+    description: String(description || '').trim().slice(0, 300) || null,
+    category: String(category).trim().slice(0, 60),
+    unit: String(unit).trim().slice(0, 60),
+    priceKobo: Math.round(priceKobo),
+    stock: Math.max(0, Math.floor(Number(stock) || 0)),
+    isActive: 1,
+    imageEmoji: String(imageEmoji || '📦').trim().slice(0, 8) || '📦',
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await db.insert(schema.auditLogs).values({
+    id: uuidv4(),
+    actorId: user.id,
+    actorRole: user.role,
+    action: 'CREATE_PRODUCT',
+    entityType: 'PRODUCT',
+    entityReference: id,
+    timestamp: now,
+    summary: `Created market product "${name}"`,
+  });
+
+  res.json({ success: true, id });
+});
+
+apiRouter.put('/admin/market/products/:id', async (req, res) => {
+  const user = requireStaffUser(req);
+  if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+  const { id } = req.params;
+  const product = await db.query.products.findFirst({ where: eq(schema.products.id, id) });
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  const { name, description, category, unit, priceKobo, stock, isActive, imageEmoji } = req.body;
+  const now = getUnixTime(new Date());
+
+  await db.update(schema.products).set({
+    name: name != null ? String(name).trim().slice(0, 120) : product.name,
+    description: description != null ? String(description).trim().slice(0, 300) || null : product.description,
+    category: category != null ? String(category).trim().slice(0, 60) : product.category,
+    unit: unit != null ? String(unit).trim().slice(0, 60) : product.unit,
+    priceKobo: priceKobo != null ? Math.max(1, Math.round(priceKobo)) : product.priceKobo,
+    stock: stock != null ? Math.max(0, Math.floor(Number(stock) || 0)) : product.stock,
+    isActive: isActive != null ? (isActive ? 1 : 0) : product.isActive,
+    imageEmoji: imageEmoji != null ? String(imageEmoji).trim().slice(0, 8) || '📦' : product.imageEmoji,
+    updatedAt: now,
+  }).where(eq(schema.products.id, id));
+
+  await db.insert(schema.auditLogs).values({
+    id: uuidv4(),
+    actorId: user.id,
+    actorRole: user.role,
+    action: 'UPDATE_PRODUCT',
+    entityType: 'PRODUCT',
+    entityReference: id,
+    timestamp: now,
+    summary: `Updated market product "${name || product.name}"`,
+  });
+
+  res.json({ success: true });
+});
+
+apiRouter.get('/admin/market/orders', async (req, res) => {
+  if (!requireStaffUser(req)) return res.status(403).json({ error: 'Unauthorized' });
+
+  const orders = await db.query.orders.findMany({
+    orderBy: [desc(schema.orders.placedAt)]
+  });
+
+  const membersList = await db.query.members.findMany();
+  const membersMap = Object.fromEntries(membersList.map(m => [m.id, m]));
+
+  const enriched = await Promise.all(orders.map(async (order) => {
+    const items = await db.query.orderItems.findMany({
+      where: eq(schema.orderItems.orderId, order.id)
+    });
+    return { ...order, items, member: membersMap[order.memberId] };
+  }));
+
+  res.json({ orders: enriched });
+});
+
+apiRouter.post('/admin/market/orders/:id/status', async (req, res) => {
+  const user = requireStaffUser(req);
+  if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+  const { id } = req.params;
+  const { status } = req.body;
+  const VALID = ['PLACED', 'PACKED', 'FULFILLED', 'CANCELLED'];
+
+  const order = await db.query.orders.findFirst({ where: eq(schema.orders.id, id) });
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (!VALID.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+
+  // Lifecycle: PLACED → PACKED → FULFILLED; either non-final stage can be CANCELLED
+  if (status === order.status) return res.status(400).json({ error: 'Order is already in that status' });
+  if (['FULFILLED', 'CANCELLED'].includes(order.status)) {
+    return res.status(400).json({ error: 'Order is already final' });
+  }
+  if (order.status === 'PACKED' && status !== 'FULFILLED' && status !== 'CANCELLED') {
+    return res.status(400).json({ error: 'Packed orders can only be fulfilled or cancelled' });
+  }
+  if (order.status === 'PLACED' && !['PACKED', 'CANCELLED'].includes(status)) {
+    return res.status(400).json({ error: 'Placed orders can only be packed or cancelled' });
+  }
+
+  const now = getUnixTime(new Date());
+
+  if (status === 'CANCELLED') {
+    // Restore stock and refund the member's deposit wallet
+    const items = await db.query.orderItems.findMany({ where: eq(schema.orderItems.orderId, order.id) });
+    for (const item of items) {
+      const product = await db.query.products.findFirst({ where: eq(schema.products.id, item.productId) });
+      if (product) {
+        await db.update(schema.products)
+          .set({ stock: product.stock + item.quantity, updatedAt: now })
+          .where(eq(schema.products.id, item.productId));
+      }
+    }
+    const memberRow = await db.query.members.findFirst({ where: eq(schema.members.id, order.memberId) });
+    if (memberRow) {
+      const newBalance = (memberRow.depositBalanceKobo || 0) + order.totalKobo;
+      await db.update(schema.members)
+        .set({ depositBalanceKobo: newBalance })
+        .where(eq(schema.members.id, memberRow.id));
+    }
+    await db.insert(schema.ledgerTransactions).values({
+      id: uuidv4(),
+      reference: `MKT-REF-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
+      type: 'MARKET_REFUND',
+      paymentSource: 'DEPOSIT_WALLET',
+      status: 'COMPLETED',
+      description: `Refund for cancelled order ${order.reference}`,
+      amountKobo: order.totalKobo,
+      date: now,
+    });
+  }
+
+  await db.update(schema.orders)
+    .set({ status, updatedAt: now })
+    .where(eq(schema.orders.id, id));
+
+  await db.insert(schema.auditLogs).values({
+    id: uuidv4(),
+    actorId: user.id,
+    actorRole: user.role,
+    action: `ORDER_${status}`,
+    entityType: 'ORDER',
+    entityReference: id,
+    timestamp: now,
+    summary: `Order ${order.reference} marked ${status}`,
+  });
 
   res.json({ success: true });
 });

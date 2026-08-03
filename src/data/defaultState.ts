@@ -78,6 +78,20 @@ export function createDefaultState() {
     })),
   ];
 
+  // Starter deposit-wallet balances (spendable in the member market)
+  const walletByMember: Record<string, number> = {
+    [uid('mem', 8)]: 12000000, // Dan
+    [uid('mem', 9)]: 9000000,  // Tunde
+    [uid('mem', 10)]: 7000000, // Ola
+    [uid('mem', 1)]: 8300000,  // Ada — after seeded market purchase (10M top-up − 1.7M)
+    [uid('mem', 2)]: 8000000,  // Chidi
+    [uid('mem', 3)]: 1400000,  // Temidayo — after seeded market purchase
+    [uid('mem', 4)]: 6000000,  // Fatima
+    [uid('mem', 5)]: 4000000,  // Emeka
+    [uid('mem', 6)]: 3000000,  // Ngozi
+    [uid('mem', 7)]: 2500000,  // Ibrahim
+  };
+
   const members = [
     ...staffMembers.map((s) => ({
       id: s.memberId,
@@ -88,6 +102,8 @@ export function createDefaultState() {
       phoneNumber: s.phone,
       status: 'ACTIVE',
       totalContributionsKobo: s.savings,
+      depositBalanceKobo: walletByMember[s.memberId] ?? 0,
+      sharesBalanceKobo: 0,
       joinedAt: monthsAgo(s.months),
     })),
     ...m.map((x) => ({
@@ -99,6 +115,8 @@ export function createDefaultState() {
       phoneNumber: x.phone,
       status: 'ACTIVE',
       totalContributionsKobo: x.savings,
+      depositBalanceKobo: walletByMember[x.memberId] ?? 0,
+      sharesBalanceKobo: 0,
       joinedAt: monthsAgo(x.months),
     })),
   ];
@@ -203,6 +221,47 @@ export function createDefaultState() {
     { id: uid('g', 4), loanId: loanEmekaId, guarantorMemberId: m[5].memberId, status: 'PENDING', comment: null, requestedAt: monthsAgo(0) },
   ];
 
+  // Member market — coop shop (stock reflects the seeded orders below)
+  const marketProducts = [
+    { id: uid('mkt', 1), name: 'Improved Maize Seed', description: 'High-yield, drought-tolerant improved maize seed.', category: 'Seeds', unit: '10kg bag', priceKobo: 850000, stock: 38, isActive: 1, imageEmoji: '🌽', createdAt: monthsAgo(6), updatedAt: monthsAgo(6) },
+    { id: uid('mkt', 2), name: 'Rice Seed (FARO 44)', description: 'Certified FARO 44 paddy rice seed for wetland planting.', category: 'Seeds', unit: '25kg bag', priceKobo: 1800000, stock: 25, isActive: 1, imageEmoji: '🌾', createdAt: monthsAgo(6), updatedAt: monthsAgo(6) },
+    { id: uid('mkt', 3), name: 'NPK Fertilizer 20-10-10', description: 'Blended compound fertilizer for maize and rice.', category: 'Inputs', unit: '50kg bag', priceKobo: 3200000, stock: 30, isActive: 1, imageEmoji: '🧪', createdAt: monthsAgo(6), updatedAt: monthsAgo(6) },
+    { id: uid('mkt', 4), name: 'Poultry Feed (Layer)', description: 'Balanced layer mash, bulk-bought by the cooperative.', category: 'Animal Feed', unit: '25kg bag', priceKobo: 1250000, stock: 20, isActive: 1, imageEmoji: '🐔', createdAt: monthsAgo(6), updatedAt: monthsAgo(6) },
+    { id: uid('mkt', 5), name: 'Organic Manure', description: 'Composted organic manure for vegetable plots.', category: 'Inputs', unit: '20kg bag', priceKobo: 600000, stock: 49, isActive: 1, imageEmoji: '🌱', createdAt: monthsAgo(6), updatedAt: monthsAgo(6) },
+    { id: uid('mkt', 6), name: 'Maize Grains (Pooled Harvest)', description: 'Cooperative pooled harvest, available to members first.', category: 'Harvest', unit: '100kg bag', priceKobo: 4500000, stock: 15, isActive: 1, imageEmoji: '🌽', createdAt: monthsAgo(6), updatedAt: monthsAgo(6) },
+  ];
+
+  // Seeded orders so staff and member portals open with live-looking market activity
+  const orders = [
+    {
+      id: uid('ord', 1),
+      memberId: m[0].memberId, // Ada SC-001
+      reference: 'ORD-2026-1001',
+      status: 'FULFILLED',
+      totalKobo: 1700000,
+      itemCount: 2,
+      note: 'Wet season maize planting',
+      placedAt: monthsAgo(1),
+      updatedAt: daysFromNow(-20),
+    },
+    {
+      id: uid('ord', 2),
+      memberId: m[2].memberId, // Temidayo SC-003
+      reference: 'ORD-2026-1002',
+      status: 'PLACED',
+      totalKobo: 600000,
+      itemCount: 1,
+      note: null as string | null,
+      placedAt: daysFromNow(-1),
+      updatedAt: daysFromNow(-1),
+    },
+  ];
+
+  const orderItems = [
+    { id: uid('oi', 1), orderId: uid('ord', 1), productId: uid('mkt', 1), productName: 'Improved Maize Seed', unitPriceKobo: 850000, quantity: 2 },
+    { id: uid('oi', 2), orderId: uid('ord', 2), productId: uid('mkt', 5), productName: 'Organic Manure', unitPriceKobo: 600000, quantity: 1 },
+  ];
+
   // SC-006 pending withdrawal
   const fundRequests = [
     {
@@ -281,6 +340,8 @@ export function createDefaultState() {
     ledgerRow(uid('tx', 10), 'INV-2026-0101', 'INVESTMENT_PURCHASE', 50000000, monthsAgo(6), 'Treasury bill placement — FGN 91-day', null),
     ledgerRow(uid('tx', 11), 'INV-2026-0102', 'INVESTMENT_RETURN', 2500000, monthsAgo(3), 'Investment return — FGN 91-day', null),
     ledgerRow(uid('tx', 12), 'DIV-2025-0001', 'DIVIDEND_PAYOUT', 7000000, monthsAgo(4), '2025 surplus dividend allocation', null),
+    ledgerRow(uid('tx', 13), 'MKT-2026-1001', 'MARKET_PURCHASE', 1700000, monthsAgo(1), 'Market purchase ORD-2026-1001 (2 items) — SC-001', m[0].memberId),
+    ledgerRow(uid('tx', 14), 'MKT-2026-1002', 'MARKET_PURCHASE', 600000, daysFromNow(-1), 'Market purchase ORD-2026-1002 (1 item) — SC-003', m[2].memberId),
   ];
 
   const investments = [
@@ -467,6 +528,9 @@ export function createDefaultState() {
     loanProducts,
     loans,
     guarantorRequests,
+    marketProducts,
+    orders,
+    orderItems,
     fundRequests,
     investments,
     dividendPeriods,

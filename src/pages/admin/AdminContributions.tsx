@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Coins, Plus, Search, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 

@@ -24,8 +24,18 @@ export async function initDb() {
       phone_number TEXT NOT NULL,
       status TEXT NOT NULL,
       total_contributions_kobo INTEGER NOT NULL DEFAULT 0,
+      deposit_balance_kobo INTEGER NOT NULL DEFAULT 0,
+      shares_balance_kobo INTEGER NOT NULL DEFAULT 0,
       joined_at INTEGER NOT NULL
     );`);
+
+    try {
+      await db.run(sql`ALTER TABLE members ADD COLUMN deposit_balance_kobo INTEGER NOT NULL DEFAULT 0;`);
+    } catch (e) {}
+
+    try {
+      await db.run(sql`ALTER TABLE members ADD COLUMN shares_balance_kobo INTEGER NOT NULL DEFAULT 0;`);
+    } catch (e) {}
 
     await db.run(sql`CREATE TABLE IF NOT EXISTS membership_applications (
       id TEXT PRIMARY KEY,
@@ -54,11 +64,16 @@ export async function initDb() {
       id TEXT PRIMARY KEY,
       reference TEXT NOT NULL UNIQUE,
       type TEXT NOT NULL,
+      payment_source TEXT,
       status TEXT NOT NULL,
       description TEXT,
       amount_kobo INTEGER NOT NULL,
       date INTEGER NOT NULL
     );`);
+
+    try {
+      await db.run(sql`ALTER TABLE ledger_transactions ADD COLUMN payment_source TEXT;`);
+    } catch (e) {}
 
     await db.run(sql`CREATE TABLE IF NOT EXISTS loan_products (
       id TEXT PRIMARY KEY,
@@ -144,6 +159,41 @@ export async function initDb() {
       notes TEXT
     );`);
 
+    await db.run(sql`CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      unit TEXT NOT NULL,
+      price_kobo INTEGER NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      image_emoji TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );`);
+
+    await db.run(sql`CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      member_id TEXT NOT NULL,
+      reference TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL,
+      total_kobo INTEGER NOT NULL,
+      item_count INTEGER NOT NULL,
+      note TEXT,
+      placed_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );`);
+
+    await db.run(sql`CREATE TABLE IF NOT EXISTS order_items (
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      unit_price_kobo INTEGER NOT NULL,
+      quantity INTEGER NOT NULL
+    );`);
+
     // Check if seeded
     const existingUsers = await db.query.users.findMany();
     if (existingUsers.length === 0) {
@@ -154,7 +204,27 @@ export async function initDb() {
   }
 }
 
-async function seedDefaultData() {
+/** Wipe all rows and restore the demo opening state (used by the login page reset button). */
+export async function resetDatabase() {
+  await db.delete(schema.orderItems);
+  await db.delete(schema.orders);
+  await db.delete(schema.products);
+  await db.delete(schema.auditLogs);
+  await db.delete(schema.announcements);
+  await db.delete(schema.demoEmailOutbox);
+  await db.delete(schema.repaymentSchedules);
+  await db.delete(schema.guarantorRequests);
+  await db.delete(schema.loans);
+  await db.delete(schema.loanProducts);
+  await db.delete(schema.ledgerTransactions);
+  await db.delete(schema.contributionObligations);
+  await db.delete(schema.membershipApplications);
+  await db.delete(schema.members);
+  await db.delete(schema.users);
+  await seedDefaultData();
+}
+
+export async function seedDefaultData() {
   const now = getUnixTime(new Date());
 
   const adminId = uuidv4();
@@ -216,6 +286,15 @@ async function seedDefaultData() {
     { id: emergencyLoanId, name: 'Emergency Loan', minAmountKobo: 5000000, maxAmountKobo: 50000000, interestRate: 0.05, maxTermMonths: 6, requiredGuarantors: 1 },
     { id: developmentLoanId, name: 'Development Loan', minAmountKobo: 100000000, maxAmountKobo: 1000000000, interestRate: 0.10, maxTermMonths: 24, requiredGuarantors: 2 },
     { id: schoolFeesLoanId, name: 'School Fees Loan', minAmountKobo: 20000000, maxAmountKobo: 200000000, interestRate: 0.07, maxTermMonths: 12, requiredGuarantors: 1 }
+  ]);
+
+  await db.insert(schema.products).values([
+    { id: uuidv4(), name: 'Improved Maize Seed', description: 'High-yield, drought-tolerant improved maize seed.', category: 'Seeds', unit: '10kg bag', priceKobo: 850000, stock: 40, isActive: 1, imageEmoji: '🌽', createdAt: now, updatedAt: now },
+    { id: uuidv4(), name: 'Rice Seed (FARO 44)', description: 'Certified FARO 44 paddy rice seed for wetland planting.', category: 'Seeds', unit: '25kg bag', priceKobo: 1800000, stock: 25, isActive: 1, imageEmoji: '🌾', createdAt: now, updatedAt: now },
+    { id: uuidv4(), name: 'NPK Fertilizer 20-10-10', description: 'Blended compound fertilizer for maize and rice.', category: 'Inputs', unit: '50kg bag', priceKobo: 3200000, stock: 30, isActive: 1, imageEmoji: '🧪', createdAt: now, updatedAt: now },
+    { id: uuidv4(), name: 'Poultry Feed (Layer)', description: 'Balanced layer mash, bulk-bought by the cooperative.', category: 'Animal Feed', unit: '25kg bag', priceKobo: 1250000, stock: 20, isActive: 1, imageEmoji: '🐔', createdAt: now, updatedAt: now },
+    { id: uuidv4(), name: 'Organic Manure', description: 'Composted organic manure for vegetable plots.', category: 'Inputs', unit: '20kg bag', priceKobo: 600000, stock: 50, isActive: 1, imageEmoji: '🌱', createdAt: now, updatedAt: now },
+    { id: uuidv4(), name: 'Maize Grains (Pooled Harvest)', description: 'Cooperative pooled harvest, available to members first.', category: 'Harvest', unit: '100kg bag', priceKobo: 4500000, stock: 15, isActive: 1, imageEmoji: '🌽', createdAt: now, updatedAt: now },
   ]);
 
   await db.insert(schema.announcements).values([

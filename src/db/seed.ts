@@ -7,6 +7,9 @@ import { subMonths, addMonths, startOfMonth, endOfMonth, getUnixTime } from 'dat
 async function clearDb() {
   console.log('Clearing database...');
   await db.delete(schema.auditLogs);
+  await db.delete(schema.orderItems);
+  await db.delete(schema.orders);
+  await db.delete(schema.products);
   await db.delete(schema.announcements);
   await db.delete(schema.demoEmailOutbox);
   await db.delete(schema.repaymentSchedules);
@@ -86,6 +89,16 @@ async function seed() {
       { id: emergencyLoanId, name: 'Emergency Loan', minAmountKobo: 5000000, maxAmountKobo: 50000000, interestRate: 0.05, maxTermMonths: 6, requiredGuarantors: 1 },
       { id: developmentLoanId, name: 'Development Loan', minAmountKobo: 100000000, maxAmountKobo: 1000000000, interestRate: 0.10, maxTermMonths: 24, requiredGuarantors: 2 },
       { id: schoolFeesLoanId, name: 'School Fees Loan', minAmountKobo: 20000000, maxAmountKobo: 200000000, interestRate: 0.07, maxTermMonths: 12, requiredGuarantors: 1 }
+    ]);
+
+    console.log('Seeding market products...');
+    await db.insert(schema.products).values([
+      { id: uuidv4(), name: 'Improved Maize Seed', description: 'High-yield, drought-tolerant improved maize seed.', category: 'Seeds', unit: '10kg bag', priceKobo: 850000, stock: 40, isActive: 1, imageEmoji: '🌽', createdAt: now, updatedAt: now },
+      { id: uuidv4(), name: 'Rice Seed (FARO 44)', description: 'Certified FARO 44 paddy rice seed for wetland planting.', category: 'Seeds', unit: '25kg bag', priceKobo: 1800000, stock: 25, isActive: 1, imageEmoji: '🌾', createdAt: now, updatedAt: now },
+      { id: uuidv4(), name: 'NPK Fertilizer 20-10-10', description: 'Blended compound fertilizer for maize and rice.', category: 'Inputs', unit: '50kg bag', priceKobo: 3200000, stock: 30, isActive: 1, imageEmoji: '🧪', createdAt: now, updatedAt: now },
+      { id: uuidv4(), name: 'Poultry Feed (Layer)', description: 'Balanced layer mash, bulk-bought by the cooperative.', category: 'Animal Feed', unit: '25kg bag', priceKobo: 1250000, stock: 20, isActive: 1, imageEmoji: '🐔', createdAt: now, updatedAt: now },
+      { id: uuidv4(), name: 'Organic Manure', description: 'Composted organic manure for vegetable plots.', category: 'Inputs', unit: '20kg bag', priceKobo: 600000, stock: 50, isActive: 1, imageEmoji: '🌱', createdAt: now, updatedAt: now },
+      { id: uuidv4(), name: 'Maize Grains (Pooled Harvest)', description: 'Cooperative pooled harvest, available to members first.', category: 'Harvest', unit: '100kg bag', priceKobo: 4500000, stock: 15, isActive: 1, imageEmoji: '🌽', createdAt: now, updatedAt: now },
     ]);
 
     console.log('Seeding announcements...');

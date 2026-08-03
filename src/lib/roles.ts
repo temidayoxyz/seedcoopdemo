@@ -23,6 +23,7 @@ type Permission =
   | 'loans:disburse'
   | 'investments:write'
   | 'dividends:write'
+  | 'market:write'
   | 'settings:write'
   | 'reset:write'
   | 'ledger:read'
@@ -45,6 +46,7 @@ const MATRIX: Record<StaffRole, Permission[]> = {
     'loans:disburse',
     'investments:write',
     'dividends:write',
+    'market:write',
     'settings:write',
     'reset:write',
     'ledger:read',
@@ -55,6 +57,7 @@ const MATRIX: Record<StaffRole, Permission[]> = {
     'applications:write',
     'members:write',
     'loans:approve',
+    'market:write',
     'ledger:read',
     'reports:read',
     'outbox:read',
@@ -65,6 +68,7 @@ const MATRIX: Record<StaffRole, Permission[]> = {
     'loans:disburse',
     'investments:write',
     'dividends:write',
+    'market:write',
     'ledger:read',
     'reports:read',
     'outbox:read',
@@ -89,6 +93,8 @@ export type NavKey =
   | 'deposits'
   | 'withdrawals'
   | 'loans'
+  | 'market'
+  | 'marketOrders'
   | 'investments'
   | 'dividends'
   | 'ledger'
@@ -101,19 +107,19 @@ export function adminNavForRole(role: string): NavKey[] {
   if (role === 'SUPER_ADMIN') {
     return [
       'dashboard', 'applications', 'members', 'contributions', 'deposits', 'withdrawals',
-      'loans', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile', 'settings',
+      'loans', 'market', 'marketOrders', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile', 'settings',
     ];
   }
   if (role === 'ADMIN') {
     // Governance focus: applications + members + loan approval; money surfaces are read-only
     return [
       'dashboard', 'applications', 'members', 'contributions', 'deposits', 'withdrawals',
-      'loans', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile',
+      'loans', 'market', 'marketOrders', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile',
     ];
   }
   // Treasurer — money ops, no applications / settings
   return [
     'dashboard', 'members', 'contributions', 'deposits', 'withdrawals',
-    'loans', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile',
+    'loans', 'market', 'marketOrders', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile',
   ];
 }

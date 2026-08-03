@@ -4,8 +4,9 @@ import { isStaff } from '../lib/roles';
 export type { CoopState };
 
 // v4: staff names — Dan Segun / Ola Dayo / Tunde Bakare
-const STORAGE_KEY = 'seedcoop-state-v4';
-const SESSION_KEY = 'seedcoop-session-v4';
+// v5: member market — products, orders, order items + deposit wallet balances
+const STORAGE_KEY = 'seedcoop-state-v5';
+const SESSION_KEY = 'seedcoop-session-v5';
 
 export type Session = { userId: string; portal: 'MEMBER' | 'ADMIN' };
 

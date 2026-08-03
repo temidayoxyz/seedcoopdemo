@@ -2,7 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Users, FileSignature, Coins, Landmark, FileBarChart,
   Settings, Mail, ArrowDownCircle, ArrowUpCircle, User, Menu, X, BookOpen, TrendingUp, PiggyBank,
-  ArrowLeftRight,
+  ArrowLeftRight, Store, PackageCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect, useMemo, useState } from 'react';
@@ -16,6 +16,8 @@ const NAV_META: Record<NavKey, { name: string; path: string; icon: any }> = {
   deposits: { name: 'Deposits', path: '/admin/deposits', icon: ArrowDownCircle },
   withdrawals: { name: 'Withdrawals', path: '/admin/withdrawals', icon: ArrowUpCircle },
   loans: { name: 'Loans', path: '/admin/loans', icon: Landmark },
+  market: { name: 'Market', path: '/admin/market', icon: Store },
+  marketOrders: { name: 'Market Orders', path: '/admin/market/orders', icon: PackageCheck },
   investments: { name: 'Investments', path: '/admin/investments', icon: TrendingUp },
   dividends: { name: 'Dividends', path: '/admin/dividends', icon: PiggyBank },
   ledger: { name: 'Ledger', path: '/admin/ledger', icon: BookOpen },
@@ -90,12 +92,15 @@ export function AdminLayout() {
 
   const roleLabel = ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] || user.role;
   const duty = ROLE_DUTIES[user.role as keyof typeof ROLE_DUTIES] || '';
-  const currentNav = navItems.find((i) => location.pathname.startsWith(i.path))?.name || 'Dashboard';
+  const isActivePath = (path: string) => path === '/admin/market'
+    ? location.pathname === '/admin/market'
+    : location.pathname.startsWith(path);
+  const currentNav = navItems.find((i) => isActivePath(i.path))?.name || 'Dashboard';
 
   const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
       {navItems.map((item) => {
-        const isActive = location.pathname.startsWith(item.path);
+        const isActive = isActivePath(item.path);
         return (
           <Link
             key={item.name}

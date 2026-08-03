@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogOut, Home, PieChart, CreditCard, FileText, Bell, User,
   ArrowDownCircle, ArrowUpCircle, Menu, X, PiggyBank, ArrowLeftRight, Shield,
+  Store, PackageCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCallback, useEffect, useState } from 'react';
@@ -76,6 +77,8 @@ export function MemberLayout() {
     { name: 'Deposits', path: '/member/deposits', icon: ArrowDownCircle },
     { name: 'Withdrawals', path: '/member/withdrawals', icon: ArrowUpCircle },
     { name: 'Loans', path: '/member/loans', icon: CreditCard },
+    { name: 'Market', path: '/member/market', icon: Store },
+    { name: 'My Orders', path: '/member/market/orders', icon: PackageCheck },
     { name: 'Dividends', path: '/member/dividends', icon: PiggyBank },
     { name: 'Statements', path: '/member/statements', icon: FileText },
     { name: 'Notifications', path: '/member/notifications', icon: Bell },
@@ -113,7 +116,9 @@ export function MemberLayout() {
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
+            const isActive = item.path === '/member/market'
+              ? location.pathname === '/member/market'
+              : location.pathname.startsWith(item.path);
             return (
               <Link
                 key={item.name}

@@ -18,6 +18,8 @@ export const members = sqliteTable('members', {
   phoneNumber: text('phone_number').notNull(),
   status: text('status').notNull(), // 'ACTIVE', 'SUSPENDED'
   totalContributionsKobo: integer('total_contributions_kobo').notNull().default(0),
+  depositBalanceKobo: integer('deposit_balance_kobo').notNull().default(0),
+  sharesBalanceKobo: integer('shares_balance_kobo').notNull().default(0),
   joinedAt: integer('joined_at').notNull(),
 });
 
@@ -47,7 +49,8 @@ export const contributionObligations = sqliteTable('contribution_obligations', {
 export const ledgerTransactions = sqliteTable('ledger_transactions', {
   id: text('id').primaryKey(),
   reference: text('reference').notNull().unique(),
-  type: text('type').notNull(), // 'CONTRIBUTION_PAYMENT', 'LOAN_DISBURSEMENT', 'LOAN_REPAYMENT'
+  type: text('type').notNull(), // 'CONTRIBUTION_PAYMENT', 'LOAN_DISBURSEMENT', 'LOAN_REPAYMENT', 'DEPOSIT_FUNDING', 'DEPOSIT_TO_CONTRIBUTION', 'DEPOSIT_TO_SHARES', 'DEPOSIT_TO_LOAN_REPAYMENT'
+  paymentSource: text('payment_source'), // 'DEPOSIT_WALLET', 'PAYSTACK', 'DIRECT_PAYMENT', 'BANK_TRANSFER', 'ADMIN_RECORD'
   status: text('status').notNull(), // 'COMPLETED', 'REVERSED'
   description: text('description'),
   amountKobo: integer('amount_kobo').notNull(),
@@ -123,6 +126,41 @@ export const auditLogs = sqliteTable('audit_logs', {
   entityReference: text('entity_reference').notNull(),
   timestamp: integer('timestamp').notNull(),
   summary: text('summary').notNull(),
+});
+
+export const products = sqliteTable('products', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  category: text('category').notNull(),
+  unit: text('unit').notNull(), // 'bag', 'kg', 'pack', 'litre'
+  priceKobo: integer('price_kobo').notNull(),
+  stock: integer('stock').notNull().default(0),
+  isActive: integer('is_active').notNull().default(1), // 1 = active, 0 = hidden
+  imageEmoji: text('image_emoji'), // placeholder artwork
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const orders = sqliteTable('orders', {
+  id: text('id').primaryKey(),
+  memberId: text('member_id').references(() => members.id).notNull(),
+  reference: text('reference').notNull().unique(),
+  status: text('status').notNull(), // 'PLACED', 'PACKED', 'FULFILLED', 'CANCELLED'
+  totalKobo: integer('total_kobo').notNull(),
+  itemCount: integer('item_count').notNull(),
+  note: text('note'),
+  placedAt: integer('placed_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const orderItems = sqliteTable('order_items', {
+  id: text('id').primaryKey(),
+  orderId: text('order_id').references(() => orders.id).notNull(),
+  productId: text('product_id').references(() => products.id).notNull(),
+  productName: text('product_name').notNull(), // snapshot at order time
+  unitPriceKobo: integer('unit_price_kobo').notNull(), // snapshot at order time
+  quantity: integer('quantity').notNull(),
 });
 
 export const fundRequests = sqliteTable('fund_requests', {

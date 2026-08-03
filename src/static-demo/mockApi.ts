@@ -433,15 +433,15 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
         id, memberId: member.id, reference, type, amountKobo,
         status: 'APPROVED', requestedAt: t, processedAt: t, processedBy: null, notes,
       });
-      member.totalContributionsKobo += amountKobo;
+      member.depositBalanceKobo = (member.depositBalanceKobo || 0) + amountKobo;
       pushLedger(state, {
         reference,
-        type: 'DEPOSIT',
+        type: 'DEPOSIT_FUNDING',
         amountKobo,
-        description: `Member deposit — ${member.membershipNumber}`,
+        description: `Member Deposit Wallet Top-Up — ${member.membershipNumber}`,
         memberId: member.id,
       });
-      pushMail(state, auth.user.email, 'DEPOSIT_RECEIPT', `Deposit receipt ${reference}`, { amountKobo, reference }, `Deposit of ₦${(amountKobo / 100).toFixed(2)} credited. Ref: ${reference}`);
+      pushMail(state, auth.user.email, 'DEPOSIT_RECEIPT', `Deposit receipt ${reference}`, { amountKobo, reference }, `Deposit of ₦${(amountKobo / 100).toFixed(2)} credited to deposit wallet. Ref: ${reference}`);
       saveState(state);
       return json({
         success: true,
@@ -452,8 +452,8 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
           amountKobo,
           memberName: `${member.firstName} ${member.lastName}`,
           membershipNumber: member.membershipNumber,
-          description: notes || 'Voluntary deposit',
-          typeLabel: 'Deposit',
+          description: notes || 'Deposit Wallet Top-Up',
+          typeLabel: 'Deposit Top-Up',
           date: t,
         },
       });
@@ -467,6 +467,106 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     return json({ success: true, reference });
   }
 
+  if (apiPath === '/api/members/deposits/allocate' && method === 'POST') {
+    const auth = requireMember(state);
+    if (!auth) return json({ error: 'Unauthorized' }, 401);
+
+    const { contributionKobo = 0, sharesKobo = 0, loanRepaymentKobo = 0, loanId } = body;
+    const cKobo = Math.max(0, Number(contributionKobo) || 0);
+    const sKobo = Math.max(0, Number(sharesKobo) || 0);
+    const lKobo = Math.max(0, Number(loanRepaymentKobo) || 0);
+    const totalAllocation = cKobo + sKobo + lKobo;
+
+    if (totalAllocation <= 0) {
+      return json({ error: 'Allocation amount must be greater than zero' }, 400);
+    }
+
+    const member = state.members.find((m) => m.id === auth.member.id);
+    if (!member) return json({ error: 'Member profile not found' }, 404);
+
+    const availableDeposit = member.depositBalanceKobo || 0;
+    if (totalAllocation > availableDeposit) {
+      return json({ error: 'Insufficient funds in Deposit Balance' }, 400);
+    }
+
+    let loanToUpdate: any = null;
+    if (lKobo > 0) {
+      if (!loanId) return json({ error: 'Loan target required for loan repayment' }, 400);
+      loanToUpdate = state.loans.find((l) => l.id === loanId);
+      if (!loanToUpdate || loanToUpdate.memberId !== member.id) {
+        return json({ error: 'Invalid active loan specified' }, 400);
+      }
+      const outstanding = loanToUpdate.totalDueKobo - loanToUpdate.paidKobo;
+      if (lKobo > outstanding) {
+        return json({ error: 'Loan repayment amount exceeds outstanding loan balance' }, 400);
+      }
+    }
+
+    member.depositBalanceKobo = availableDeposit - totalAllocation;
+
+    if (cKobo > 0) {
+      member.totalContributionsKobo += cKobo;
+      const memberObs = state.obligations
+        .filter((o) => o.memberId === member.id && o.status !== 'PAID')
+        .sort((a, b) => a.dueDate - b.dueDate);
+
+      let remaining = cKobo;
+      for (const ob of memberObs) {
+        if (remaining <= 0) break;
+        const owed = ob.expectedAmountKobo - ob.paidAmountKobo;
+        if (owed > 0) {
+          const pay = Math.min(owed, remaining);
+          ob.paidAmountKobo += pay;
+          ob.status = ob.paidAmountKobo >= ob.expectedAmountKobo ? 'PAID' : 'PARTIAL';
+          remaining -= pay;
+        }
+      }
+
+      pushLedger(state, {
+        reference: makeReference('ALLOC-SAV'),
+        type: 'DEPOSIT_TO_CONTRIBUTION',
+        amountKobo: cKobo,
+        description: `Allocation from Deposit Fund to Savings — ${member.membershipNumber}`,
+        memberId: member.id,
+      });
+    }
+
+    if (sKobo > 0) {
+      member.sharesBalanceKobo = (member.sharesBalanceKobo || 0) + sKobo;
+      pushLedger(state, {
+        reference: makeReference('ALLOC-SHR'),
+        type: 'DEPOSIT_TO_SHARES',
+        amountKobo: sKobo,
+        description: `Allocation from Deposit Fund to Share Capital — ${member.membershipNumber}`,
+        memberId: member.id,
+      });
+    }
+
+    if (lKobo > 0 && loanToUpdate) {
+      loanToUpdate.paidKobo += lKobo;
+      if (loanToUpdate.paidKobo >= loanToUpdate.totalDueKobo) {
+        loanToUpdate.status = 'COMPLETED';
+      }
+      pushLedger(state, {
+        reference: makeReference('ALLOC-LN'),
+        type: 'DEPOSIT_TO_LOAN_REPAYMENT',
+        amountKobo: lKobo,
+        description: `Allocation from Deposit Fund to Loan ${loanToUpdate.reference} — ${member.membershipNumber}`,
+        memberId: member.id,
+      });
+    }
+
+    saveState(state);
+    return json({
+      success: true,
+      balances: {
+        depositBalanceKobo: member.depositBalanceKobo,
+        totalContributionsKobo: member.totalContributionsKobo,
+        sharesBalanceKobo: member.sharesBalanceKobo || 0,
+      },
+    });
+  }
+
   const fundCancel = apiPath.match(/^\/api\/members\/funds\/([^/]+)\/cancel$/);
   if (fundCancel && method === 'POST') {
     const auth = requireMember(state);
@@ -478,6 +578,100 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     request.processedAt = now();
     saveState(state);
     return json({ success: true });
+  }
+
+  // —— Market: cooperative shop (member side) ——
+  if (apiPath === '/api/members/market/products' && method === 'GET') {
+    const auth = requireMember(state);
+    if (!auth) return json({ error: 'Unauthorized' }, 401);
+    return json({
+      products: state.marketProducts
+        .filter((p) => p.isActive)
+        .sort((a, b) => b.createdAt - a.createdAt),
+    });
+  }
+
+  if (apiPath === '/api/members/market/orders' && method === 'GET') {
+    const auth = requireMember(state);
+    if (!auth) return json({ error: 'Unauthorized' }, 401);
+    return json({
+      orders: state.orders
+        .filter((o) => o.memberId === auth.member.id)
+        .sort((a, b) => b.placedAt - a.placedAt)
+        .map((o) => ({ ...o, items: state.orderItems.filter((i) => i.orderId === o.id) })),
+    });
+  }
+
+  if (apiPath === '/api/members/market/orders' && method === 'POST') {
+    const auth = requireMember(state);
+    if (!auth) return json({ error: 'Unauthorized' }, 401);
+    const member = state.members.find((m) => m.id === auth.member.id)!;
+    if (member.status !== 'ACTIVE') return json({ error: 'Only active members can shop the market' }, 403);
+    const { items } = body;
+    if (!Array.isArray(items) || items.length === 0) return json({ error: 'Cart is empty' }, 400);
+
+    const lines: { product: (typeof state.marketProducts)[number]; quantity: number }[] = [];
+    for (const line of items) {
+      const quantity = Math.max(1, Math.floor(Number(line.quantity) || 0));
+      const product = state.marketProducts.find((p) => p.id === line.productId);
+      if (!product || !product.isActive) return json({ error: 'A product in your cart is no longer available' }, 400);
+      if (quantity > product.stock) return json({ error: `Only ${product.stock} × ${product.name} in stock` }, 400);
+      lines.push({ product, quantity });
+    }
+    const totalKobo = lines.reduce((s, l) => s + l.product.priceKobo * l.quantity, 0);
+    const itemCount = lines.reduce((s, l) => s + l.quantity, 0);
+    if (totalKobo > (member.depositBalanceKobo || 0)) {
+      return json({ error: 'Insufficient Deposit Balance — top up your wallet first' }, 400);
+    }
+
+    const reference = makeReference('ORD');
+    const t = now();
+    const orderId = uid();
+    state.orders.unshift({
+      id: orderId,
+      memberId: member.id,
+      reference,
+      status: 'PLACED',
+      totalKobo,
+      itemCount,
+      note: (body.note || '').trim().slice(0, 200) || null,
+      placedAt: t,
+      updatedAt: t,
+    });
+    for (const l of lines) {
+      state.orderItems.push({
+        id: uid(),
+        orderId,
+        productId: l.product.id,
+        productName: l.product.name,
+        unitPriceKobo: l.product.priceKobo,
+        quantity: l.quantity,
+      });
+      l.product.stock -= l.quantity;
+      l.product.updatedAt = t;
+    }
+    member.depositBalanceKobo = (member.depositBalanceKobo || 0) - totalKobo;
+    pushLedger(state, {
+      reference: makeReference('MKT'),
+      type: 'MARKET_PURCHASE',
+      amountKobo: totalKobo,
+      description: `Market purchase ${reference} (${itemCount} item${itemCount === 1 ? '' : 's'}) — ${member.membershipNumber}`,
+      memberId: member.id,
+    });
+    pushMail(
+      state,
+      auth.user.email,
+      'ORDER_CONFIRMATION',
+      `Order ${reference} confirmed — ${itemCount} item${itemCount === 1 ? '' : 's'}`,
+      { orderReference: reference, totalKobo, itemCount },
+      `Your market order ${reference} is confirmed. ${itemCount} item(s) will be packed for collection.`,
+    );
+    saveState(state);
+    return json({
+      success: true,
+      order: { id: orderId, reference, status: 'PLACED', totalKobo, itemCount },
+      depositBalanceKobo: member.depositBalanceKobo,
+    });
   }
 
   if (apiPath === '/api/members/statements' && method === 'GET') {
@@ -605,6 +799,8 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
       phoneNumber: application.phoneNumber,
       status: 'ACTIVE',
       totalContributionsKobo: 0,
+      depositBalanceKobo: 0,
+      sharesBalanceKobo: 0,
       joinedAt: t,
     });
     application.status = 'APPROVED';
@@ -844,6 +1040,132 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     request.status = action === 'approve' ? 'APPROVED' : 'REJECTED';
     request.processedAt = now();
     request.processedBy = user.id;
+    saveState(state);
+    return json({ success: true });
+  }
+
+  // —— Market: cooperative shop (admin side) ——
+  if (apiPath === '/api/admin/market/products' && method === 'GET') {
+    if (!requireStaff(state)) return json({ error: 'Unauthorized' }, 403);
+    const cancelledIds = new Set(state.orders.filter((o) => o.status === 'CANCELLED').map((o) => o.id));
+    const soldMap: Record<string, number> = {};
+    for (const i of state.orderItems) {
+      if (cancelledIds.has(i.orderId)) continue;
+      soldMap[i.productId] = (soldMap[i.productId] || 0) + i.quantity;
+    }
+    return json({
+      products: [...state.marketProducts]
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((p) => ({ ...p, soldCount: soldMap[p.id] || 0 })),
+    });
+  }
+
+  if (apiPath === '/api/admin/market/products' && method === 'POST') {
+    const user = requireStaff(state);
+    if (!user || !can(user.role, 'market:write')) return json({ error: 'Forbidden' }, 403);
+    if (!body.name || !body.category || !body.unit || !body.priceKobo || body.priceKobo <= 0) {
+      return json({ error: 'Name, category, unit and a positive price are required' }, 400);
+    }
+    const t = now();
+    const product = {
+      id: uid(),
+      name: String(body.name).trim().slice(0, 120),
+      description: String(body.description || '').trim().slice(0, 300) || null,
+      category: String(body.category).trim().slice(0, 60),
+      unit: String(body.unit).trim().slice(0, 60),
+      priceKobo: Math.round(body.priceKobo),
+      stock: Math.max(0, Math.floor(Number(body.stock) || 0)),
+      isActive: 1,
+      imageEmoji: String(body.imageEmoji || '📦').trim().slice(0, 8) || '📦',
+      createdAt: t,
+      updatedAt: t,
+    };
+    state.marketProducts.unshift(product);
+    saveState(state);
+    return json({ success: true, id: product.id });
+  }
+
+  const marketProductUpdate = apiPath.match(/^\/api\/admin\/market\/products\/([^/]+)$/);
+  if (marketProductUpdate && method === 'PUT') {
+    const user = requireStaff(state);
+    if (!user || !can(user.role, 'market:write')) return json({ error: 'Forbidden' }, 403);
+    const product = state.marketProducts.find((p) => p.id === marketProductUpdate[1]);
+    if (!product) return json({ error: 'Product not found' }, 404);
+    if (body.name != null) product.name = String(body.name).trim().slice(0, 120);
+    if (body.description != null) product.description = String(body.description).trim().slice(0, 300) || null;
+    if (body.category != null) product.category = String(body.category).trim().slice(0, 60);
+    if (body.unit != null) product.unit = String(body.unit).trim().slice(0, 60);
+    if (body.priceKobo != null) product.priceKobo = Math.max(1, Math.round(body.priceKobo));
+    if (body.stock != null) product.stock = Math.max(0, Math.floor(Number(body.stock) || 0));
+    if (body.isActive != null) product.isActive = body.isActive ? 1 : 0;
+    if (body.imageEmoji != null) product.imageEmoji = String(body.imageEmoji).trim().slice(0, 8) || '📦';
+    product.updatedAt = now();
+    saveState(state);
+    return json({ success: true });
+  }
+
+  if (apiPath === '/api/admin/market/orders' && method === 'GET') {
+    if (!requireStaff(state)) return json({ error: 'Unauthorized' }, 403);
+    const membersMap = Object.fromEntries(state.members.map((m) => [m.id, m]));
+    return json({
+      orders: [...state.orders]
+        .sort((a, b) => b.placedAt - a.placedAt)
+        .map((o) => ({
+          ...o,
+          items: state.orderItems.filter((i) => i.orderId === o.id),
+          member: membersMap[o.memberId],
+        })),
+    });
+  }
+
+  const marketOrderStatus = apiPath.match(/^\/api\/admin\/market\/orders\/([^/]+)\/status$/);
+  if (marketOrderStatus && method === 'POST') {
+    const user = requireStaff(state);
+    if (!user || !can(user.role, 'market:write')) return json({ error: 'Forbidden' }, 403);
+    const order = state.orders.find((o) => o.id === marketOrderStatus[1]);
+    if (!order) return json({ error: 'Order not found' }, 404);
+    const { status } = body;
+    const VALID = ['PLACED', 'PACKED', 'FULFILLED', 'CANCELLED'];
+    if (!VALID.includes(status)) return json({ error: 'Invalid status' }, 400);
+    if (status === order.status) return json({ error: 'Order is already in that status' }, 400);
+    if (['FULFILLED', 'CANCELLED'].includes(order.status)) return json({ error: 'Order is already final' }, 400);
+    if (order.status === 'PACKED' && !['FULFILLED', 'CANCELLED'].includes(status)) {
+      return json({ error: 'Packed orders can only be fulfilled or cancelled' }, 400);
+    }
+    if (order.status === 'PLACED' && !['PACKED', 'CANCELLED'].includes(status)) {
+      return json({ error: 'Placed orders can only be packed or cancelled' }, 400);
+    }
+
+    const t = now();
+    if (status === 'CANCELLED') {
+      const items = state.orderItems.filter((i) => i.orderId === order.id);
+      for (const item of items) {
+        const product = state.marketProducts.find((p) => p.id === item.productId);
+        if (product) product.stock += item.quantity;
+      }
+      const member = state.members.find((m) => m.id === order.memberId);
+      if (member) member.depositBalanceKobo = (member.depositBalanceKobo || 0) + order.totalKobo;
+      pushLedger(state, {
+        reference: makeReference('MKT-REF'),
+        type: 'MARKET_REFUND',
+        amountKobo: order.totalKobo,
+        description: `Refund for cancelled order ${order.reference} — ${member?.membershipNumber || ''}`,
+        memberId: order.memberId,
+      });
+      const u = state.users.find((x) => x.id === member?.userId);
+      if (u) {
+        pushMail(
+          state,
+          u.email,
+          'ORDER_CANCELLED',
+          `Order ${order.reference} cancelled — refund issued`,
+          { orderReference: order.reference, amountKobo: order.totalKobo },
+          `Your order ${order.reference} was cancelled and ₦${(order.totalKobo / 100).toFixed(2)} refunded to your deposit wallet.`,
+        );
+      }
+    }
+    order.status = status;
+    order.updatedAt = t;
     saveState(state);
     return json({ success: true });
   }

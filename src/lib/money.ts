@@ -35,12 +35,14 @@ export function sideForType(type: string): LedgerSide {
     case 'DEPOSIT':
     case 'LOAN_REPAYMENT':
     case 'INVESTMENT_RETURN':
+    case 'MARKET_PURCHASE':
       return 'CREDIT';
     case 'LOAN_DISBURSEMENT':
     case 'WITHDRAWAL':
     case 'WITHDRAWAL_PAYMENT':
     case 'DIVIDEND_PAYOUT':
     case 'INVESTMENT_PURCHASE':
+    case 'MARKET_REFUND':
       return 'DEBIT';
     default:
       return 'CREDIT';

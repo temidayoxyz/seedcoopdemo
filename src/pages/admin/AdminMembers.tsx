@@ -93,8 +93,9 @@ export function AdminMembers() {
                 <tr>
                   <th className="px-6 py-3.5">Member</th>
                   <th className="px-6 py-3.5">Contact Details</th>
-                  <th className="px-6 py-3.5 text-right">Total Contributions</th>
-                  <th className="px-6 py-3.5">Joined Date</th>
+                  <th className="px-6 py-3.5 text-right">Deposit Wallet</th>
+                  <th className="px-6 py-3.5 text-right">Savings / Thrift</th>
+                  <th className="px-6 py-3.5 text-right">Share Capital</th>
                   <th className="px-6 py-3.5 text-center">Status</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
@@ -102,7 +103,7 @@ export function AdminMembers() {
               <tbody className="divide-y divide-ink-100 bg-white">
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-ink-500">
+                    <td colSpan={7} className="p-12 text-center text-ink-500">
                       No matching members found.
                     </td>
                   </tr>
@@ -124,11 +125,14 @@ export function AdminMembers() {
                         <div className="text-xs font-medium text-ink-800">{m.email}</div>
                         <div className="text-xs text-ink-500 font-mono mt-0.5">{m.phoneNumber}</div>
                       </td>
+                      <td className="px-6 py-4 text-right font-bold font-mono text-seed-900 bg-seed-50/40">
+                        ₦{((m.depositBalanceKobo || 0) / 100).toLocaleString()}
+                      </td>
                       <td className="px-6 py-4 text-right font-bold font-mono text-seed-950">
                         ₦{(m.totalContributionsKobo / 100).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-xs text-ink-600">
-                        {new Date(m.joinedAt * 1000).toLocaleDateString()}
+                      <td className="px-6 py-4 text-right font-bold font-mono text-seed-950">
+                        ₦{((m.sharesBalanceKobo || 0) / 100).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${

@@ -24,6 +24,8 @@ import { MemberNotifications } from './pages/member/MemberNotifications';
 import { MemberDeposits } from './pages/member/MemberDeposits';
 import { MemberWithdrawals } from './pages/member/MemberWithdrawals';
 import { MemberProfile } from './pages/member/MemberProfile';
+import { MemberMarket } from './pages/member/MemberMarket';
+import { MemberMarketOrders } from './pages/member/MemberMarketOrders';
 
 // Admin Pages
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -41,10 +43,12 @@ import { AdminProfile } from './pages/admin/AdminProfile';
 import { AdminLedger } from './pages/admin/AdminLedger';
 import { AdminInvestments } from './pages/admin/AdminInvestments';
 import { AdminDividends } from './pages/admin/AdminDividends';
+import { AdminMarket } from './pages/admin/AdminMarket';
+import { AdminMarketOrders } from './pages/admin/AdminMarketOrders';
 import { MemberDividends } from './pages/member/MemberDividends';
 
 // Vite BASE_URL is e.g. "/seedcoopdemo/" on GitHub Pages
-const routerBasename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || undefined;
+const routerBasename = ((import.meta as any).env?.BASE_URL || '/').replace(/\/$/, '') || undefined;
 
 export default function App() {
   return (
@@ -73,6 +77,8 @@ export default function App() {
           <Route path="loans/apply" element={<MemberLoanApply />} />
           <Route path="deposits" element={<MemberDeposits />} />
           <Route path="withdrawals" element={<MemberWithdrawals />} />
+          <Route path="market" element={<MemberMarket />} />
+          <Route path="market/orders" element={<MemberMarketOrders />} />
           <Route path="statements" element={<MemberStatements />} />
           <Route path="dividends" element={<MemberDividends />} />
           <Route path="notifications" element={<MemberNotifications />} />
@@ -87,6 +93,8 @@ export default function App() {
           <Route path="members" element={<AdminMembers />} />
           <Route path="contributions" element={<AdminContributions />} />
           <Route path="loans" element={<AdminLoans />} />
+          <Route path="market" element={<AdminMarket />} />
+          <Route path="market/orders" element={<AdminMarketOrders />} />
           <Route path="deposits" element={<AdminDeposits />} />
           <Route path="withdrawals" element={<AdminWithdrawals />} />
           <Route path="investments" element={<AdminInvestments />} />
