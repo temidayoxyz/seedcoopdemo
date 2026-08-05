@@ -91,7 +91,7 @@ export function AdminInvestments() {
 
       {!writable && (
         <p className="text-sm text-ink-600 bg-ink-50 border border-ink-200 rounded-[10px] px-4 py-3">
-          Read-only for your role. Treasurer and Super Admin can book new investments.
+          Read-only for your role. Financial Secretary proposes investments; Super Admin final-approves money-out.
         </p>
       )}
 

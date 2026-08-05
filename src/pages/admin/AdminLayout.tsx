@@ -2,19 +2,21 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogOut, LayoutDashboard, Users, FileSignature, Coins, Landmark, FileBarChart,
   Settings, Mail, ArrowDownCircle, ArrowUpCircle, User, Menu, X, BookOpen, TrendingUp, PiggyBank,
-  ArrowLeftRight, Store, PackageCheck,
+  ArrowLeftRight, Store, PackageCheck, Receipt,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect, useMemo, useState } from 'react';
-import { adminNavForRole, ROLE_DUTIES, ROLE_LABELS, type NavKey } from '../../lib/roles';
+import { adminNavForRole, normalizeRole, ROLE_DUTIES, ROLE_LABELS, type NavKey } from '../../lib/roles';
 
 const NAV_META: Record<NavKey, { name: string; path: string; icon: any }> = {
   dashboard: { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   applications: { name: 'Applications', path: '/admin/applications', icon: FileSignature },
   members: { name: 'Members', path: '/admin/members', icon: Users },
-  contributions: { name: 'Contributions', path: '/admin/contributions', icon: Coins },
+  contributions: { name: 'Savings', path: '/admin/savings', icon: Coins },
+  shares: { name: 'Shares', path: '/admin/shares', icon: Landmark },
   deposits: { name: 'Deposits', path: '/admin/deposits', icon: ArrowDownCircle },
   withdrawals: { name: 'Withdrawals', path: '/admin/withdrawals', icon: ArrowUpCircle },
+  fees: { name: 'Fees', path: '/admin/fees', icon: Receipt },
   loans: { name: 'Loans', path: '/admin/loans', icon: Landmark },
   market: { name: 'Market', path: '/admin/market', icon: Store },
   marketOrders: { name: 'Market Orders', path: '/admin/market/orders', icon: PackageCheck },
@@ -38,9 +40,11 @@ export function AdminLayout() {
 
   useEffect(() => {
     fetch('/api/auth/me').then((res) => res.json()).then((data) => {
-      if (!data.user || data.portal !== 'ADMIN' || data.user.role === 'MEMBER') navigate('/login');
-      else {
-        setUser(data.user);
+      const role = normalizeRole(data.user?.role);
+      if (!data.user || data.portal !== 'ADMIN' || data.user.role === 'MEMBER' || data.user.role === 'APPLICANT') {
+        navigate('/login');
+      } else {
+        setUser({ ...data.user, role });
         setMember(data.member || null);
         setCanSwitchToMember(!!data.canSwitchToMember);
       }

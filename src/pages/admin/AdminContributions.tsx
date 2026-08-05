@@ -3,7 +3,12 @@ import { Coins, Plus, Search, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function AdminContributions() {
-  const [data, setData] = useState<{ members: any[]; ledger: any[] }>({ members: [], ledger: [] });
+  const [data, setData] = useState<{
+    members: any[];
+    ledger: any[];
+    settings?: { monthlySavingsKobo: number };
+    currentPeriod?: string;
+  }>({ members: [], ledger: [] });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -18,7 +23,12 @@ export function AdminContributions() {
     fetch('/api/admin/contributions')
       .then(res => res.json())
       .then(d => {
-        setData({ members: d.members || [], ledger: d.ledger || [] });
+        setData({
+          members: d.members || [],
+          ledger: d.ledger || [],
+          settings: d.settings,
+          currentPeriod: d.currentPeriod,
+        });
         if (d.members && d.members.length > 0 && !selectedMemberId) {
           setSelectedMemberId(d.members[0].id);
         }
@@ -35,7 +45,7 @@ export function AdminContributions() {
     e.preventDefault();
     const amountKobo = parseInt(amount) * 100;
     if (isNaN(amountKobo) || amountKobo <= 0) {
-      toast.error('Please enter a valid contribution amount');
+      toast.error('Please enter a valid savings amount');
       return;
     }
     if (!selectedMemberId) {
@@ -51,12 +61,12 @@ export function AdminContributions() {
         body: JSON.stringify({
           memberId: selectedMemberId,
           amountKobo,
-          description: description || 'Monthly Share/Savings Contribution',
+          description: description || 'Monthly savings',
         }),
       });
       const resData = await res.json();
       if (resData.success) {
-        toast.success('Member contribution recorded successfully.');
+        toast.success('Member savings recorded successfully.');
         setIsModalOpen(false);
         setAmount('');
         setDescription('');
@@ -85,19 +95,32 @@ export function AdminContributions() {
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-seed-950 flex items-center gap-2">
-            <Coins className="w-6 h-6 text-seed-800" /> Contributions & Share Capital
+            <Coins className="w-6 h-6 text-seed-800" /> Savings
           </h1>
-          <p className="text-ink-600 mt-1">Track member savings, share capital obligations, and record transactions.</p>
+          <p className="text-ink-600 mt-1">
+            Monthly savings obligations (admin amount). Current period:{' '}
+            <strong className="font-mono">{data.currentPeriod || '—'}</strong>
+            {data.settings?.monthlySavingsKobo != null && (
+              <>
+                {' '}
+                · ₦{(data.settings.monthlySavingsKobo / 100).toLocaleString()}/member
+              </>
+            )}
+            . Share capital is under Shares.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-white px-4 py-2.5 rounded-[10px] border border-ink-200 text-xs font-semibold text-seed-900 shadow-xs">
-            Total Cooperative Capital: <span className="font-bold text-seed-950 text-base font-mono">₦{(totalCoopSavingsKobo / 100).toLocaleString()}</span>
+            Total savings:{' '}
+            <span className="font-bold text-seed-950 text-base font-mono">
+              ₦{(totalCoopSavingsKobo / 100).toLocaleString()}
+            </span>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-seed-800 text-white px-4 py-2.5 rounded-[10px] font-medium hover:bg-seed-700 transition-colors text-sm flex items-center gap-2 shadow-sm"
           >
-            <Plus className="w-4 h-4" /> Record Contribution
+            <Plus className="w-4 h-4" /> Record savings
           </button>
         </div>
       </header>
@@ -143,15 +166,40 @@ export function AdminContributions() {
                         <div className="text-xs font-mono text-seed-700 font-medium">{m.membershipNumber}</div>
                       </td>
                       <td className="px-6 py-4 text-xs font-mono text-ink-600">
-                        ₦{(m.monthlyContributionKobo / 100).toLocaleString()} / month
+                        ₦
+                        {(
+                          (m.monthlySavingsKobo || data.settings?.monthlySavingsKobo || 0) / 100
+                        ).toLocaleString()}{' '}
+                        / month
+                        {m.currentObligation && (
+                          <div className="text-[10px] text-ink-500 mt-0.5">
+                            This period: ₦{(m.currentObligation.paidAmountKobo / 100).toLocaleString()}{' '}
+                            / ₦{(m.currentObligation.expectedAmountKobo / 100).toLocaleString()}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right font-bold font-mono text-seed-950 text-base">
                         ₦{(m.totalContributionsKobo / 100).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/20">
-                          <CheckCircle2 className="w-3 h-3" /> Up to Date
-                        </span>
+                        {(() => {
+                          const st = m.currentObligation?.status || 'UNPAID';
+                          const ok = st === 'PAID';
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                ok
+                                  ? 'bg-success/10 text-success border border-success/20'
+                                  : st === 'PARTIAL'
+                                    ? 'bg-warning/10 text-warning border border-warning/20'
+                                    : 'bg-ink-100 text-ink-600 border border-ink-200'
+                              }`}
+                            >
+                              {ok && <CheckCircle2 className="w-3 h-3" />}
+                              {st}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))
@@ -180,7 +228,7 @@ export function AdminContributions() {
                   </div>
                   <div className="text-[11px] text-ink-600 truncate mb-1">{entry.description || 'Monthly Contribution'}</div>
                   <div className="text-[10px] text-ink-400 font-mono">
-                    {new Date(entry.createdAt * 1000).toLocaleString()}
+                    {new Date((entry.date || entry.createdAt || 0) * 1000).toLocaleString()}
                   </div>
                 </div>
               ))
@@ -193,7 +241,7 @@ export function AdminContributions() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-seed-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-[14px] border border-ink-200 shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-lg font-bold text-seed-950">Record Member Contribution</h3>
+            <h3 className="text-lg font-bold text-seed-950">Record member savings</h3>
             <form onSubmit={handleRecordContribution} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-ink-700 mb-1">Select Member</label>
@@ -230,7 +278,7 @@ export function AdminContributions() {
                   type="text" 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. July 2026 Monthly Contribution"
+                  placeholder="e.g. July 2026 monthly savings"
                   className="w-full px-3 py-2 border border-ink-200 rounded-[8px] text-sm focus:ring-2 focus:ring-seed-500 outline-none"
                 />
               </div>
@@ -248,7 +296,7 @@ export function AdminContributions() {
                   disabled={isRecording}
                   className="flex-1 py-2 text-sm font-medium text-white bg-seed-800 hover:bg-seed-700 rounded-[8px] transition-colors disabled:opacity-50"
                 >
-                  {isRecording ? 'Recording...' : 'Save Contribution'}
+                  {isRecording ? 'Recording...' : 'Save savings'}
                 </button>
               </div>
             </form>

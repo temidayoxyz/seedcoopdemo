@@ -1,19 +1,24 @@
+import { useOutletContext } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Users, Search, UserCheck, UserX, ShieldAlert } from 'lucide-react';
+import { Users, Search, UserCheck, UserX, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { can } from '../../lib/roles';
 
 export function AdminMembers() {
+  const { user } = useOutletContext<{ user: any }>();
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const canSuspend = can(user?.role, 'members:suspend');
+  const canDelete = can(user?.role, 'members:delete');
+  const canRoles = can(user?.role, 'members:roles');
+
   const fetchMembers = () => {
     fetch('/api/admin/members')
-      .then(res => res.json())
-      .then(data => {
-        setMembers(data.members || []);
-      })
+      .then((res) => res.json())
+      .then((data) => setMembers(data.members || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
@@ -23,6 +28,8 @@ export function AdminMembers() {
   }, []);
 
   const handleToggleStatus = async (memberId: string, currentStatus: string) => {
+    if (!canSuspend) return toast.error('You cannot suspend members');
+    if (currentStatus === 'REMOVED') return;
     const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     setUpdatingId(memberId);
     try {
@@ -35,138 +42,229 @@ export function AdminMembers() {
       if (data.success) {
         toast.success(`Member status updated to ${newStatus}`);
         fetchMembers();
-      } else {
-        toast.error(data.error || 'Failed to update member status');
-      }
-    } catch (err) {
+      } else toast.error(data.error || 'Failed');
+    } catch {
       toast.error('An error occurred');
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const filteredMembers = members.filter(m => {
+  const handleDelete = async (memberId: string, label: string) => {
+    if (!canDelete) return;
+    if (!confirm(`Remove ${label} from the cooperative? Ledger history is kept (soft delete).`)) return;
+    setUpdatingId(memberId);
+    try {
+      const res = await fetch(`/api/admin/members/${memberId}/delete`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Member removed');
+        fetchMembers();
+      } else toast.error(data.error || 'Failed');
+    } catch {
+      toast.error('An error occurred');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRole = async (memberId: string, role: string) => {
+    if (!canRoles) return;
+    setUpdatingId(memberId);
+    try {
+      const res = await fetch(`/api/admin/members/${memberId}/role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Role set to ${role}`);
+        fetchMembers();
+      } else toast.error(data.error || 'Failed');
+    } catch {
+      toast.error('An error occurred');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const filteredMembers = members.filter((m) => {
     const q = searchQuery.toLowerCase();
     const name = `${m.firstName} ${m.lastName}`.toLowerCase();
-    const memNo = (m.membershipNumber || '').toLowerCase();
-    const email = (m.email || '').toLowerCase();
-    const phone = (m.phoneNumber || '').toLowerCase();
-    return name.includes(q) || memNo.includes(q) || email.includes(q) || phone.includes(q);
+    return (
+      name.includes(q) ||
+      (m.membershipNumber || '').toLowerCase().includes(q) ||
+      (m.email || '').toLowerCase().includes(q)
+    );
   });
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-seed-950 flex items-center gap-2">
-            <Users className="w-6 h-6 text-seed-800" /> Members Directory
-          </h1>
-          <p className="text-ink-600 mt-1">Manage cooperative members, profiles, and account statuses.</p>
-        </div>
-        <div className="flex gap-3">
-          <div className="bg-white px-4 py-2.5 rounded-[10px] border border-ink-200 text-xs font-semibold text-seed-900 shadow-xs">
-            Total Members: <span className="font-bold text-seed-950 text-sm font-mono">{members.length}</span>
-          </div>
-        </div>
+      <header>
+        <h1 className="text-2xl font-bold text-seed-950 flex items-center gap-2">
+          <Users className="w-6 h-6 text-seed-800" /> Members
+        </h1>
+        <p className="text-ink-600 mt-1">
+          Admin can suspend. Super Admin can remove members and assign staff roles.
+        </p>
       </header>
 
       <div className="bg-white rounded-[14px] border border-ink-200 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
-        <div className="p-4 border-b border-ink-200 bg-ink-50 flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="p-4 border-b border-ink-200 bg-ink-50">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search members by name, ID, phone, email..." 
-              className="w-full pl-9 pr-4 py-2 text-sm border border-ink-200 rounded-[8px] focus:ring-2 focus:ring-seed-500 outline-none bg-white" 
+              placeholder="Search members…"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-ink-200 rounded-[8px] focus:ring-2 focus:ring-seed-500 outline-none"
             />
           </div>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-ink-500">Loading members directory...</div>
+          <div className="p-12 text-center text-ink-500">Loading…</div>
         ) : (
           <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left text-sm divide-y divide-ink-100">
-              <thead className="bg-ink-50/70 text-ink-600 font-semibold text-xs uppercase tracking-wider">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-ink-50/70 text-ink-600 font-semibold text-xs uppercase">
                 <tr>
-                  <th className="px-6 py-3.5">Member</th>
-                  <th className="px-6 py-3.5">Contact Details</th>
-                  <th className="px-6 py-3.5 text-right">Deposit Wallet</th>
-                  <th className="px-6 py-3.5 text-right">Savings / Thrift</th>
-                  <th className="px-6 py-3.5 text-right">Share Capital</th>
-                  <th className="px-6 py-3.5 text-center">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  <th className="px-4 py-3">Member</th>
+                  <th className="px-4 py-3">Their code</th>
+                  <th className="px-4 py-3">Referred by</th>
+                  <th className="px-4 py-3 text-right">Shares</th>
+                  <th className="px-4 py-3 text-right">Deposit</th>
+                  <th className="px-4 py-3 text-right">Savings</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100 bg-white">
-                {filteredMembers.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-12 text-center text-ink-500">
-                      No matching members found.
+              <tbody className="divide-y divide-ink-100">
+                {filteredMembers.map((m) => (
+                  <tr key={m.id} className="hover:bg-ivory-50/80">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-seed-950">
+                        {m.firstName} {m.middleName || ''} {m.lastName}
+                      </div>
+                      <div className="text-xs font-mono text-seed-700">{m.membershipNumber}</div>
+                      <div className="text-xs text-ink-500">{m.email}</div>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs">{m.referralCode || m.membershipNumber || '—'}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {m.referrer?.name ? (
+                        <div>
+                          <div className="font-medium text-seed-950">{m.referrer.name}</div>
+                          <div className="font-mono text-ink-500">{m.referrer.membershipNumber}</div>
+                        </div>
+                      ) : m.referredByCode ? (
+                        <span className="font-mono text-ink-600">{m.referredByCode}</span>
+                      ) : (
+                        <span className="text-ink-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      ₦{((m.sharesBalanceKobo || 0) / 100).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      ₦{((m.depositBalanceKobo || 0) / 100).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      ₦{((m.totalContributionsKobo || 0) / 100).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          m.status === 'ACTIVE'
+                            ? 'bg-success/10 text-success'
+                            : m.status === 'REMOVED' || m.status === 'LEFT'
+                              ? 'bg-ink-100 text-ink-600'
+                              : 'bg-danger/10 text-danger'
+                        }`}
+                      >
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-wrap justify-end gap-1.5">
+                        {canSuspend && m.status !== 'REMOVED' && m.status !== 'LEFT' && (
+                          <button
+                            onClick={() => handleToggleStatus(m.id, m.status)}
+                            disabled={updatingId === m.id}
+                            className="px-2 py-1 rounded text-xs border border-ink-200 hover:bg-ink-50 inline-flex items-center gap-1"
+                          >
+                            {m.status === 'ACTIVE' ? (
+                              <>
+                                <UserX className="w-3 h-3" /> Suspend
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="w-3 h-3" /> Reinstate
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {canRoles && m.status === 'ACTIVE' && m.status !== 'LEFT' && (
+                          <>
+                            <select
+                              className="text-xs border border-ink-200 rounded px-1 py-1"
+                              defaultValue=""
+                              title="Assign a staff role (Member is the default)"
+                              onChange={(e) => {
+                                if (e.target.value) handleRole(m.id, e.target.value);
+                                e.target.value = '';
+                              }}
+                            >
+                              <option value="" disabled>
+                                Assign staff role…
+                              </option>
+                              <option value="FINANCIAL_SECRETARY">Financial Secretary</option>
+                              <option value="ADMIN">Admin</option>
+                              <option value="SUPER_ADMIN">Super Admin</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Remove staff powers? They remain a normal member.')) {
+                                  // Demote via allowDemote flag
+                                  setUpdatingId(m.id);
+                                  fetch(`/api/admin/members/${m.id}/role`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ role: 'MEMBER', allowDemote: true }),
+                                  })
+                                    .then((r) => r.json())
+                                    .then((d) => {
+                                      if (d.success) {
+                                        toast.success('Staff role removed — back to Member');
+                                        fetchMembers();
+                                      } else toast.error(d.error || 'Failed');
+                                    })
+                                    .finally(() => setUpdatingId(null));
+                                }
+                              }}
+                              className="px-2 py-1 rounded text-xs border border-ink-200 hover:bg-ink-50"
+                            >
+                              Remove staff role
+                            </button>
+                          </>
+                        )}
+                        {canDelete && m.status !== 'REMOVED' && (
+                          <button
+                            onClick={() =>
+                              handleDelete(m.id, `${m.firstName} ${m.lastName}`)
+                            }
+                            disabled={updatingId === m.id}
+                            className="px-2 py-1 rounded text-xs border border-danger/30 text-danger hover:bg-danger/5 inline-flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" /> Remove
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredMembers.map(m => (
-                    <tr key={m.id} className="hover:bg-ivory-50/80 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-seed-100 text-seed-800 font-bold flex items-center justify-center text-sm shadow-xs">
-                            {m.firstName?.[0]}{m.lastName?.[0]}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-seed-950">{m.firstName} {m.lastName}</div>
-                            <div className="text-xs font-mono text-seed-700 font-semibold">{m.membershipNumber}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs font-medium text-ink-800">{m.email}</div>
-                        <div className="text-xs text-ink-500 font-mono mt-0.5">{m.phoneNumber}</div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold font-mono text-seed-900 bg-seed-50/40">
-                        ₦{((m.depositBalanceKobo || 0) / 100).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold font-mono text-seed-950">
-                        ₦{(m.totalContributionsKobo / 100).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold font-mono text-seed-950">
-                        ₦{((m.sharesBalanceKobo || 0) / 100).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          m.status === 'ACTIVE' 
-                            ? 'bg-success/10 text-success border border-success/20' 
-                            : 'bg-danger/10 text-danger border border-danger/20'
-                        }`}>
-                          {m.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleToggleStatus(m.id, m.status)}
-                          disabled={updatingId === m.id}
-                          className={`px-3 py-1.5 rounded-[6px] text-xs font-medium transition-colors border disabled:opacity-50 inline-flex items-center gap-1.5 ${
-                            m.status === 'ACTIVE'
-                              ? 'bg-white border-danger/30 text-danger hover:bg-danger/5'
-                              : 'bg-white border-success/30 text-success hover:bg-success/5'
-                          }`}
-                        >
-                          {m.status === 'ACTIVE' ? (
-                            <>
-                              <UserX className="w-3.5 h-3.5" /> Suspend
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="w-3.5 h-3.5" /> Activate
-                            </>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>

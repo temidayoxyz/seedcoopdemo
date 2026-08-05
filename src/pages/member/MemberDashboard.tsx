@@ -83,43 +83,45 @@ export function MemberDashboard() {
               onClick={() => setIsAllocationOpen(true)}
               className="flex-1 py-1.5 bg-white text-seed-900 hover:bg-seed-50 text-xs font-semibold rounded-[6px] transition-colors"
             >
-              Share / Distribute
+              Allocate funds
             </button>
           </div>
         </div>
 
-        {/* Total Thrift (Savings) Card */}
+        {/* Savings Card */}
         <div className="bg-white rounded-[14px] p-6 border border-ink-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-medium text-ink-600 uppercase tracking-wider">Total Savings / Thrift</span>
+              <span className="text-xs font-medium text-ink-600 uppercase tracking-wider">Total savings</span>
               <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">Accumulating</span>
             </div>
             <p className="text-3xl font-bold text-seed-950 mt-1">
               <MoneyText kobo={m.totalContributionsKobo} />
             </p>
           </div>
-          <p className="text-xs text-ink-600 mt-3">
-            Active for {Math.max(1, Math.floor((Date.now() - m.joinedAt * 1000) / (1000 * 60 * 60 * 24 * 30)))} months
-          </p>
+          <Link to="/member/savings" className="text-xs text-seed-800 font-medium mt-3 hover:underline">
+            View savings →
+          </Link>
         </div>
 
-        {/* Share Capital Card */}
+        {/* Share Capital Card — links to Shares flow only */}
         <div className="bg-white rounded-[14px] p-6 border border-ink-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-medium text-ink-600 uppercase tracking-wider">Share Capital</span>
+              <span className="text-xs font-medium text-ink-600 uppercase tracking-wider">Share capital</span>
               <span className="text-[10px] bg-seed-100 text-seed-800 px-2 py-0.5 rounded-full font-medium">Equity</span>
             </div>
             <p className="text-3xl font-bold text-seed-950 mt-1">
               <MoneyText kobo={m.sharesBalanceKobo || 0} />
             </p>
           </div>
-          <p className="text-xs text-ink-600 mt-3">Co-op equity holding</p>
+          <Link to="/member/shares" className="text-xs text-seed-800 font-medium mt-3 hover:underline">
+            Buy or manage shares →
+          </Link>
         </div>
       </div>
 
-      {/* Cycle contribution & progress */}
+      {/* Cycle savings & progress */}
       <div className="bg-white rounded-[14px] p-6 border border-ink-200 shadow-sm flex flex-col sm:flex-row items-center gap-8">
         <div className="relative w-28 h-28 flex-shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
@@ -141,7 +143,7 @@ export function MemberDashboard() {
           </div>
         </div>
         <div className="flex-1 text-center sm:text-left">
-          <h2 className="text-lg font-semibold text-seed-950 mb-2">Current cycle contribution</h2>
+          <h2 className="text-lg font-semibold text-seed-950 mb-2">Current monthly savings obligation</h2>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-xs text-ink-600 uppercase tracking-wider mb-1">Expected</p>
@@ -154,14 +156,14 @@ export function MemberDashboard() {
           </div>
           {currentMonthObligation.expectedAmountKobo > currentMonthObligation.paidAmountKobo ? (
             <div className="flex flex-wrap gap-2">
-              <Link to="/member/contributions" className="inline-flex bg-seed-800 text-white px-4 py-2 rounded-[8px] text-sm font-medium hover:bg-seed-700">
-                Pay via Card / Transfer
+              <Link to="/member/savings" className="inline-flex bg-seed-800 text-white px-4 py-2 rounded-[8px] text-sm font-medium hover:bg-seed-700">
+                Pay savings
               </Link>
               <button
                 onClick={() => setIsAllocationOpen(true)}
                 className="inline-flex bg-seed-100 text-seed-900 border border-seed-300 px-4 py-2 rounded-[8px] text-sm font-medium hover:bg-seed-200"
               >
-                Pay from Deposit Wallet
+                Pay from deposit wallet
               </button>
             </div>
           ) : (

@@ -2,7 +2,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogOut, Home, PieChart, CreditCard, FileText, Bell, User,
   ArrowDownCircle, ArrowUpCircle, Menu, X, PiggyBank, ArrowLeftRight, Shield,
-  Store, PackageCheck,
+  Store, PackageCheck, Landmark, Receipt,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCallback, useEffect, useState } from 'react';
@@ -21,12 +21,26 @@ export function MemberLayout() {
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {
-        if (!data.member || data.portal !== 'MEMBER') navigate('/login');
-        else {
-          setMember(data.member);
-          setUser(data.user || null);
-          setCanSwitchToAdmin(!!data.canSwitchToAdmin);
+        if (data.portal !== 'MEMBER' || !data.user) {
+          navigate('/login');
+          return;
         }
+        if (data.needsOnboarding || data.user.role === 'APPLICANT') {
+          navigate('/member/onboarding');
+          return;
+        }
+        if (!data.member) {
+          navigate('/login');
+          return;
+        }
+        if (data.member?.status === 'LEFT' || data.member?.status === 'REMOVED') {
+          toast.error('This membership is closed');
+          navigate('/login');
+          return;
+        }
+        setMember(data.member);
+        setUser(data.user || null);
+        setCanSwitchToAdmin(!!data.canSwitchToAdmin);
       })
       .catch(() => navigate('/login'));
   }, [navigate]);
@@ -73,9 +87,11 @@ export function MemberLayout() {
 
   const navItems = [
     { name: 'Dashboard', path: '/member/dashboard', icon: Home },
-    { name: 'Contributions', path: '/member/contributions', icon: PieChart },
+    { name: 'Savings', path: '/member/savings', icon: PieChart },
+    { name: 'Shares', path: '/member/shares', icon: Landmark },
     { name: 'Deposits', path: '/member/deposits', icon: ArrowDownCircle },
     { name: 'Withdrawals', path: '/member/withdrawals', icon: ArrowUpCircle },
+    { name: 'Fees', path: '/member/fees', icon: Receipt },
     { name: 'Loans', path: '/member/loans', icon: CreditCard },
     { name: 'Market', path: '/member/market', icon: Store },
     { name: 'My Orders', path: '/member/market/orders', icon: PackageCheck },
@@ -241,7 +257,7 @@ export function MemberLayout() {
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <Outlet context={{ member, refreshMember }} />
+          <Outlet context={{ member, user, refreshMember }} />
         </div>
       </main>
     </div>

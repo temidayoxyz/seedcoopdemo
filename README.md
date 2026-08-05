@@ -1,6 +1,6 @@
 # SeedCoop
 
-Digital operating system for a thrift cooperative: contributions, deposits, withdrawals, loans, investments, dividends, and staff governance — on one shared ledger.
+Digital operating system for a thrift cooperative: referral join & onboarding, share capital, contributions, deposit wallet, loans, investments, dividends, development fees, and staff governance — on one shared ledger.
 
 **Live demo:** https://temidayoxyz.github.io/seedcoopdemo/
 
@@ -15,13 +15,7 @@ npm run dev
 
 App runs at **http://localhost:3010**
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Local development server |
-| `npm run build:pages` | Static build for GitHub Pages |
-| `npm run preview:pages` | Preview the Pages build |
-
-Password for every demo account: **`seedcoop`**
+Password for every seeded demo account: **`seedcoop`**
 
 ---
 
@@ -29,47 +23,54 @@ Password for every demo account: **`seedcoop`**
 
 ### Staff (also members)
 
-Each officer has a **staff role** and a **personal thrift profile**. After sign-in, use **Switch to member view** / **Switch to staff view** in the sidebar to move between portals without signing out.
-
 | Name | Email | Role | Member ID | Duties |
 |------|-------|------|-----------|--------|
-| Dan Segun | `admin@seedcoop.ng` | Super Admin | SC-008 | Full control — membership, loans, funds, investments, settings, data reset |
-| Ola Dayo | `ops@seedcoop.ng` | Admin | SC-010 | Governance — applications, member status, loan **approval** (no money movement) |
-| Tunde Bakare | `treasurer@seedcoop.ng` | Treasurer | SC-009 | Treasury — contributions, deposits/withdrawals, loan **disbursement**, investments, dividends |
+| Dan Segun | `admin@seedcoop.ng` | Super Admin | **SC-001** | Full control, final money-out, roles. Referral code = **SC-001** |
+| Tunde Bakare | `treasurer@seedcoop.ng` | Financial Secretary | SC-002 | Savings ops, fees, first money-out approval |
+| Ola Dayo | `ops@seedcoop.ng` | Admin | SC-003 | Applications, suspend, second money-out approval |
 
-Roles are intentionally different: Admin is **not** a read-only auditor, and Super Admin is not the same as Admin.
-
-### Members
+### Members (password `seedcoop`)
 
 | ID | Name | Opening position |
 |----|------|------------------|
-| SC-001 | Ada Okonkwo | Fully paid · strong thrift · no loan |
-| SC-002 | Chidi Okafor | Partial dues · active emergency loan |
-| SC-003 | Temidayo Adebayo | Arrears · loan restricted |
-| SC-004 | Fatima Bello | School loan nearly complete |
-| SC-005 | Emeka Nwosu | Loan pending board approval |
-| SC-006 | Ngozi Eze | Withdrawal pending |
-| SC-007 | Ibrahim Yusuf | New member · building thrift |
+| SC-004 | Ada Okonkwo | Fully paid · shares met · strong savings |
+| SC-005 | Chidi Okafor | Partial dues · active emergency loan · trial clean |
+| SC-006 | Temidayo Adebayo | Arrears · development fee unpaid |
+| SC-007 | Fatima Bello | Normal loan nearly complete · non-resident |
+| SC-008 | Emeka Nwosu | Normal loan awaiting FS approval |
+| SC-009 | Ngozi Eze | Recent deposit withdrawal |
+| SC-010 | Ibrahim Yusuf | New · needs minimum shares · trial available |
 
-All activity shares **one cooperative ledger** on the device. Use **Restore default cooperative data** on the sign-in page (or Super Admin settings) before a clean walkthrough.
+Use **Restore default cooperative data** on the sign-in page before a clean walkthrough.
 
 ---
 
 ## What you can demo
 
-- **Money UX** — ₦ formatting (kobo), receipts, copyable references, double-sided admin ledger  
-- **Funds** — contributions, deposits, and withdrawals end-to-end  
-- **Loans** — apply → approve (Super Admin / Admin) → disburse (Treasurer / Super Admin)  
-- **Dual identity** — staff open their own member dashboard, then switch back  
-- **Investments & dividends** — portfolio plus surplus allocations  
-- **Statements & outbox** — member statements from the live ledger; staff message outbox  
-- **Role-based navigation** — each staff role sees only the tools it can use  
+1. **Join** (`/join`) with referral **`SC-001`** → pay ₦2,000 → KYM → admin approve → sign in with your password (you appear on `/login` members list)  
+2. **Shares** — buy min ₦20,000 on the Shares tab only (not mixed with savings)  
+3. **Savings** — monthly thrift obligations (renamed from Contributions)  
+4. **Trial loan** → unlock Normal & Emergency  
+5. **Money-out chain** — Financial Secretary → Admin → Super Admin  
+6. **Withdraw** deposit wallet only (instant)  
+7. **Dividends** — share-weighted; credit to deposit wallet  
+8. **Super Admin** — assign staff roles only (Member is default); remove staff role to demote  
+
+### Dividend formula
+
+For each active member with shares &gt; 0:
+
+```
+member_dividend = floor( surplus × member_shares / total_shares )
+```
+
+Remainder kobo go to the largest shareholder so the pool always sums exactly.
 
 ---
 
 ## Stack
 
-React 19 · Vite · TypeScript · Tailwind CSS · Express (dev asset server) · client-side cooperative state (static / GitHub Pages)
+React 19 · Vite · TypeScript · Tailwind CSS · client-side cooperative state (static / GitHub Pages) · Express optional for local API
 
 ---
 

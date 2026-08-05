@@ -337,7 +337,7 @@ export function HomePage() {
               },
               {
                 name: 'Tunde Bakare',
-                role: 'Treasurer',
+                role: 'Financial Secretary',
                 initials: 'TB',
                 duty: 'Money movement — contributions, deposits, withdrawals, disbursement, and dividends.',
                 icon: Coins,

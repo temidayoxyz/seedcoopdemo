@@ -7,6 +7,7 @@ import { HomePage } from './pages/public/HomePage';
 import { LoginPage } from './pages/public/LoginPage';
 import { AboutPage } from './pages/public/AboutPage';
 import { MembershipPage } from './pages/public/MembershipPage';
+import { JoinPage } from './pages/public/JoinPage';
 import { LoansPage } from './pages/public/LoansPage';
 import { TermsPage } from './pages/public/TermsPage';
 import { PrivacyPage } from './pages/public/PrivacyPage';
@@ -23,6 +24,9 @@ import { MemberStatements } from './pages/member/MemberStatements';
 import { MemberNotifications } from './pages/member/MemberNotifications';
 import { MemberDeposits } from './pages/member/MemberDeposits';
 import { MemberWithdrawals } from './pages/member/MemberWithdrawals';
+import { MemberShares } from './pages/member/MemberShares';
+import { MemberFees } from './pages/member/MemberFees';
+import { MemberOnboarding } from './pages/member/MemberOnboarding';
 import { MemberProfile } from './pages/member/MemberProfile';
 import { MemberMarket } from './pages/member/MemberMarket';
 import { MemberMarketOrders } from './pages/member/MemberMarketOrders';
@@ -39,6 +43,8 @@ import { AdminOutbox } from './pages/admin/AdminOutbox';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminDeposits } from './pages/admin/AdminDeposits';
 import { AdminWithdrawals } from './pages/admin/AdminWithdrawals';
+import { AdminShares } from './pages/admin/AdminShares';
+import { AdminFees } from './pages/admin/AdminFees';
 import { AdminProfile } from './pages/admin/AdminProfile';
 import { AdminLedger } from './pages/admin/AdminLedger';
 import { AdminInvestments } from './pages/admin/AdminInvestments';
@@ -60,6 +66,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="membership" element={<MembershipPage />} />
+          <Route path="join" element={<JoinPage />} />
           <Route path="loans" element={<LoansPage />} />
           <Route path="terms" element={<TermsPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
@@ -68,11 +75,17 @@ export default function App() {
           <Route path="*" element={<GenericPage />} />
         </Route>
 
+        {/* Onboarding (applicant) — outside full member shell */}
+        <Route path="/member/onboarding" element={<MemberOnboarding />} />
+
         {/* Member Routes */}
         <Route path="/member" element={<MemberLayout />}>
           <Route index element={<Navigate to="/member/dashboard" replace />} />
           <Route path="dashboard" element={<MemberDashboard />} />
-          <Route path="contributions" element={<MemberContributions />} />
+          <Route path="contributions" element={<Navigate to="/member/savings" replace />} />
+          <Route path="savings" element={<MemberContributions />} />
+          <Route path="shares" element={<MemberShares />} />
+          <Route path="fees" element={<MemberFees />} />
           <Route path="loans" element={<MemberLoans />} />
           <Route path="loans/apply" element={<MemberLoanApply />} />
           <Route path="deposits" element={<MemberDeposits />} />
@@ -91,7 +104,10 @@ export default function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="applications" element={<AdminApplications />} />
           <Route path="members" element={<AdminMembers />} />
-          <Route path="contributions" element={<AdminContributions />} />
+          <Route path="contributions" element={<Navigate to="/admin/savings" replace />} />
+          <Route path="savings" element={<AdminContributions />} />
+          <Route path="shares" element={<AdminShares />} />
+          <Route path="fees" element={<AdminFees />} />
           <Route path="loans" element={<AdminLoans />} />
           <Route path="market" element={<AdminMarket />} />
           <Route path="market/orders" element={<AdminMarketOrders />} />

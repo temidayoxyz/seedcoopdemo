@@ -33,13 +33,21 @@ export function sideForType(type: string): LedgerSide {
   switch (type) {
     case 'CONTRIBUTION_PAYMENT':
     case 'DEPOSIT':
+    case 'DEPOSIT_FUNDING':
     case 'LOAN_REPAYMENT':
+    case 'DEPOSIT_TO_LOAN_REPAYMENT':
     case 'INVESTMENT_RETURN':
     case 'MARKET_PURCHASE':
+    case 'REGISTRATION_FEE':
+    case 'DEVELOPMENT_FEE':
+    case 'DEPOSIT_TO_CONTRIBUTION':
+    case 'DEPOSIT_TO_SHARES':
+    case 'DEPOSIT_TO_INVESTMENT':
       return 'CREDIT';
     case 'LOAN_DISBURSEMENT':
     case 'WITHDRAWAL':
     case 'WITHDRAWAL_PAYMENT':
+    case 'DEPOSIT_WITHDRAWAL':
     case 'DIVIDEND_PAYOUT':
     case 'INVESTMENT_PURCHASE':
     case 'MARKET_REFUND':

@@ -1,28 +1,35 @@
-export type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'TREASURER';
-export type AppRole = StaffRole | 'MEMBER';
+export type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'FINANCIAL_SECRETARY';
+export type AppRole = StaffRole | 'MEMBER' | 'APPLICANT';
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   SUPER_ADMIN: 'Super Admin',
   ADMIN: 'Admin',
-  TREASURER: 'Treasurer',
+  FINANCIAL_SECRETARY: 'Financial Secretary',
   MEMBER: 'Member',
+  APPLICANT: 'Applicant',
 };
 
 export const ROLE_DUTIES: Record<StaffRole, string> = {
-  SUPER_ADMIN: 'Full control — membership, loans, funds, investments, settings, and system reset',
-  ADMIN: 'Governance ops — membership applications, member status, and loan approvals (no money movement)',
-  TREASURER: 'Money movement — contributions, deposits/withdrawals, loan disbursement, investments & dividends',
+  SUPER_ADMIN: 'Full control — membership, final money-out approval, investments, dividends, settings, roles, and system reset',
+  ADMIN: 'Governance — applications, member suspend, second money-out approval (no final treasury authority)',
+  FINANCIAL_SECRETARY: 'Treasury ops — contributions, fees, first money-out approval, ledger visibility',
 };
 
 type Permission =
   | 'applications:write'
   | 'members:write'
+  | 'members:suspend'
+  | 'members:delete'
+  | 'members:roles'
   | 'contributions:write'
   | 'funds:write'
   | 'loans:approve'
   | 'loans:disburse'
   | 'investments:write'
   | 'dividends:write'
+  | 'money_out:first'
+  | 'money_out:second'
+  | 'money_out:final'
   | 'market:write'
   | 'settings:write'
   | 'reset:write'
@@ -31,21 +38,27 @@ type Permission =
   | 'outbox:read';
 
 /**
- * Three distinct staff roles (not a renamed auditor):
- * - Super Admin: everything including settings/reset and both approve + disburse
- * - Admin: governance (applications, members, loan approve) — read money surfaces, no treasury writes
- * - Treasurer: treasury writes (contributions, funds, disburse, investments, dividends) — no governance writes
+ * Three staff roles with clear separation of duties:
+ * - Super Admin: everything including final money-out, delete members, role assignment
+ * - Admin: governance + second money-out approval
+ * - Financial Secretary: treasury first approval + fee/contribution ops
  */
 const MATRIX: Record<StaffRole, Permission[]> = {
   SUPER_ADMIN: [
     'applications:write',
     'members:write',
+    'members:suspend',
+    'members:delete',
+    'members:roles',
     'contributions:write',
     'funds:write',
     'loans:approve',
     'loans:disburse',
     'investments:write',
     'dividends:write',
+    'money_out:first',
+    'money_out:second',
+    'money_out:final',
     'market:write',
     'settings:write',
     'reset:write',
@@ -56,18 +69,21 @@ const MATRIX: Record<StaffRole, Permission[]> = {
   ADMIN: [
     'applications:write',
     'members:write',
+    'members:suspend',
     'loans:approve',
+    'money_out:second',
     'market:write',
     'ledger:read',
     'reports:read',
     'outbox:read',
   ],
-  TREASURER: [
+  FINANCIAL_SECRETARY: [
     'contributions:write',
     'funds:write',
     'loans:disburse',
     'investments:write',
     'dividends:write',
+    'money_out:first',
     'market:write',
     'ledger:read',
     'reports:read',
@@ -75,14 +91,22 @@ const MATRIX: Record<StaffRole, Permission[]> = {
   ],
 };
 
+/** Migrate legacy role id from older seeds */
+export function normalizeRole(role: string | undefined): string {
+  if (role === 'TREASURER') return 'FINANCIAL_SECRETARY';
+  return role || '';
+}
+
 export function can(role: string | undefined, permission: Permission): boolean {
-  if (!role || role === 'MEMBER') return false;
-  const list = MATRIX[role as StaffRole];
+  const r = normalizeRole(role);
+  if (!r || r === 'MEMBER' || r === 'APPLICANT') return false;
+  const list = MATRIX[r as StaffRole];
   return !!list?.includes(permission);
 }
 
 export function isStaff(role: string | undefined): boolean {
-  return role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'TREASURER';
+  const r = normalizeRole(role);
+  return r === 'SUPER_ADMIN' || r === 'ADMIN' || r === 'FINANCIAL_SECRETARY';
 }
 
 export type NavKey =
@@ -90,8 +114,10 @@ export type NavKey =
   | 'applications'
   | 'members'
   | 'contributions'
+  | 'shares'
   | 'deposits'
   | 'withdrawals'
+  | 'fees'
   | 'loans'
   | 'market'
   | 'marketOrders'
@@ -104,22 +130,22 @@ export type NavKey =
   | 'settings';
 
 export function adminNavForRole(role: string): NavKey[] {
-  if (role === 'SUPER_ADMIN') {
+  const r = normalizeRole(role);
+  if (r === 'SUPER_ADMIN') {
     return [
-      'dashboard', 'applications', 'members', 'contributions', 'deposits', 'withdrawals',
+      'dashboard', 'applications', 'members', 'contributions', 'shares', 'deposits', 'withdrawals', 'fees',
       'loans', 'market', 'marketOrders', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile', 'settings',
     ];
   }
-  if (role === 'ADMIN') {
-    // Governance focus: applications + members + loan approval; money surfaces are read-only
+  if (r === 'ADMIN') {
     return [
-      'dashboard', 'applications', 'members', 'contributions', 'deposits', 'withdrawals',
+      'dashboard', 'applications', 'members', 'contributions', 'shares', 'deposits', 'withdrawals', 'fees',
       'loans', 'market', 'marketOrders', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile',
     ];
   }
-  // Treasurer — money ops, no applications / settings
+  // Financial Secretary — money ops, no applications / settings
   return [
-    'dashboard', 'members', 'contributions', 'deposits', 'withdrawals',
+    'dashboard', 'members', 'contributions', 'shares', 'deposits', 'withdrawals', 'fees',
     'loans', 'market', 'marketOrders', 'investments', 'dividends', 'ledger', 'reports', 'outbox', 'profile',
   ];
 }

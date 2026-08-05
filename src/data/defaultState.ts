@@ -40,21 +40,21 @@ export function createDefaultState() {
   const treasurerUserId = uid('user', 2);
   const opsAdminUserId = uid('user', 3);
 
-  // Staff are members first — dual identity (staff role + member thrift profile)
+  // Staff first (SC-001 Super Admin). Referral code = membership number for everyone.
   const staffMembers = [
-    { userId: adminUserId, memberId: uid('mem', 8), num: 'SC-008', first: 'Dan', last: 'Segun', email: 'admin@seedcoop.ng', phone: '+2348010000008', months: 36, savings: 72000000, role: 'SUPER_ADMIN' as const },
-    { userId: treasurerUserId, memberId: uid('mem', 9), num: 'SC-009', first: 'Tunde', last: 'Bakare', email: 'treasurer@seedcoop.ng', phone: '+2348010000009', months: 30, savings: 60000000, role: 'TREASURER' as const },
-    { userId: opsAdminUserId, memberId: uid('mem', 10), num: 'SC-010', first: 'Ola', last: 'Dayo', email: 'ops@seedcoop.ng', phone: '+2348010000010', months: 24, savings: 48000000, role: 'ADMIN' as const },
+    { userId: adminUserId, memberId: uid('mem', 8), num: 'SC-001', first: 'Dan', middle: 'O.', last: 'Segun', email: 'admin@seedcoop.ng', phone: '+2348010000001', months: 36, savings: 72000000, shares: 10000000, residency: 'RESIDENT' as const, role: 'SUPER_ADMIN' as const },
+    { userId: treasurerUserId, memberId: uid('mem', 9), num: 'SC-002', first: 'Tunde', middle: 'A.', last: 'Bakare', email: 'treasurer@seedcoop.ng', phone: '+2348010000002', months: 30, savings: 60000000, shares: 8000000, residency: 'RESIDENT' as const, role: 'FINANCIAL_SECRETARY' as const },
+    { userId: opsAdminUserId, memberId: uid('mem', 10), num: 'SC-003', first: 'Ola', middle: 'K.', last: 'Dayo', email: 'ops@seedcoop.ng', phone: '+2348010000003', months: 24, savings: 48000000, shares: 6000000, residency: 'RESIDENT' as const, role: 'ADMIN' as const },
   ];
 
   const m = [
-    { userId: uid('user', 11), memberId: uid('mem', 1), num: 'SC-001', first: 'Ada', last: 'Okonkwo', email: 'ada.okonkwo@seedcoop.ng', phone: '+2348010000001', months: 18, savings: 36000000 },
-    { userId: uid('user', 12), memberId: uid('mem', 2), num: 'SC-002', first: 'Chidi', last: 'Okafor', email: 'chidi.okafor@seedcoop.ng', phone: '+2348010000002', months: 24, savings: 48000000 },
-    { userId: uid('user', 13), memberId: uid('mem', 3), num: 'SC-003', first: 'Temidayo', last: 'Adebayo', email: 'temidayo.adebayo@seedcoop.ng', phone: '+2348010000003', months: 8, savings: 8000000 },
-    { userId: uid('user', 14), memberId: uid('mem', 4), num: 'SC-004', first: 'Fatima', last: 'Bello', email: 'fatima.bello@seedcoop.ng', phone: '+2348010000004', months: 14, savings: 28000000 },
-    { userId: uid('user', 15), memberId: uid('mem', 5), num: 'SC-005', first: 'Emeka', last: 'Nwosu', email: 'emeka.nwosu@seedcoop.ng', phone: '+2348010000005', months: 10, savings: 20000000 },
-    { userId: uid('user', 16), memberId: uid('mem', 6), num: 'SC-006', first: 'Ngozi', last: 'Eze', email: 'ngozi.eze@seedcoop.ng', phone: '+2348010000006', months: 12, savings: 24000000 },
-    { userId: uid('user', 17), memberId: uid('mem', 7), num: 'SC-007', first: 'Ibrahim', last: 'Yusuf', email: 'ibrahim.yusuf@seedcoop.ng', phone: '+2348010000007', months: 2, savings: 4000000 },
+    { userId: uid('user', 11), memberId: uid('mem', 1), num: 'SC-004', first: 'Ada', middle: 'C.', last: 'Okonkwo', email: 'ada.okonkwo@seedcoop.ng', phone: '+2348010000004', months: 18, savings: 36000000, shares: 5000000, residency: 'RESIDENT' as const },
+    { userId: uid('user', 12), memberId: uid('mem', 2), num: 'SC-005', first: 'Chidi', middle: 'E.', last: 'Okafor', email: 'chidi.okafor@seedcoop.ng', phone: '+2348010000005', months: 24, savings: 48000000, shares: 6000000, residency: 'RESIDENT' as const },
+    { userId: uid('user', 13), memberId: uid('mem', 3), num: 'SC-006', first: 'Temidayo', middle: 'B.', last: 'Adebayo', email: 'temidayo.adebayo@seedcoop.ng', phone: '+2348010000006', months: 8, savings: 8000000, shares: 2000000, residency: 'RESIDENT' as const },
+    { userId: uid('user', 14), memberId: uid('mem', 4), num: 'SC-007', first: 'Fatima', middle: 'A.', last: 'Bello', email: 'fatima.bello@seedcoop.ng', phone: '+2348010000007', months: 14, savings: 28000000, shares: 4000000, residency: 'NON_RESIDENT' as const },
+    { userId: uid('user', 15), memberId: uid('mem', 5), num: 'SC-008', first: 'Emeka', middle: 'J.', last: 'Nwosu', email: 'emeka.nwosu@seedcoop.ng', phone: '+2348010000008', months: 10, savings: 20000000, shares: 3000000, residency: 'RESIDENT' as const },
+    { userId: uid('user', 16), memberId: uid('mem', 6), num: 'SC-009', first: 'Ngozi', middle: 'I.', last: 'Eze', email: 'ngozi.eze@seedcoop.ng', phone: '+2348010000009', months: 12, savings: 24000000, shares: 3500000, residency: 'RESIDENT' as const },
+    { userId: uid('user', 17), memberId: uid('mem', 7), num: 'SC-010', first: 'Ibrahim', middle: 'M.', last: 'Yusuf', email: 'ibrahim.yusuf@seedcoop.ng', phone: '+2348010000010', months: 2, savings: 4000000, shares: 0, residency: 'RESIDENT' as const },
   ];
 
   const users = [
@@ -98,12 +98,16 @@ export function createDefaultState() {
       userId: s.userId,
       membershipNumber: s.num,
       firstName: s.first,
+      middleName: s.middle,
       lastName: s.last,
       phoneNumber: s.phone,
       status: 'ACTIVE',
+      residency: s.residency,
+      referralCode: s.num, // referral code = member code
+      referredByCode: null as string | null,
       totalContributionsKobo: s.savings,
       depositBalanceKobo: walletByMember[s.memberId] ?? 0,
-      sharesBalanceKobo: 0,
+      sharesBalanceKobo: s.shares,
       joinedAt: monthsAgo(s.months),
     })),
     ...m.map((x) => ({
@@ -111,12 +115,16 @@ export function createDefaultState() {
       userId: x.userId,
       membershipNumber: x.num,
       firstName: x.first,
+      middleName: x.middle,
       lastName: x.last,
       phoneNumber: x.phone,
       status: 'ACTIVE',
+      residency: x.residency,
+      referralCode: x.num, // referral code = member code
+      referredByCode: 'SC-001' as string | null,
       totalContributionsKobo: x.savings,
       depositBalanceKobo: walletByMember[x.memberId] ?? 0,
-      sharesBalanceKobo: 0,
+      sharesBalanceKobo: x.shares,
       joinedAt: monthsAgo(x.months),
     })),
   ];
@@ -152,65 +160,125 @@ export function createDefaultState() {
     { id: uid('ob', 17), memberId: staffMembers[2].memberId, monthPeriod: period1, expectedAmountKobo: monthly, paidAmountKobo: monthly, status: 'PAID', dueDate: daysFromNow(-25) },
   ];
 
-  const emergencyId = uid('prod', 1);
-  const developmentId = uid('prod', 2);
-  const schoolId = uid('prod', 3);
+  const trialId = uid('prod', 1);
+  const normalId = uid('prod', 2);
+  const emergencyId = uid('prod', 3);
 
   const loanProducts = [
-    { id: emergencyId, name: 'Emergency Loan', minAmountKobo: 5000000, maxAmountKobo: 50000000, interestRate: 0.05, maxTermMonths: 6, requiredGuarantors: 1 },
-    { id: developmentId, name: 'Development Loan', minAmountKobo: 50000000, maxAmountKobo: 500000000, interestRate: 0.10, maxTermMonths: 24, requiredGuarantors: 2 },
-    { id: schoolId, name: 'School Fees Loan', minAmountKobo: 10000000, maxAmountKobo: 150000000, interestRate: 0.07, maxTermMonths: 12, requiredGuarantors: 1 },
+    { id: trialId, code: 'TRIAL', name: 'Trial Loan', minAmountKobo: 3000000, maxAmountKobo: 3000000, interestRate: 0.05, maxTermMonths: 3, termOptions: [3], requiredGuarantors: 0 },
+    { id: normalId, code: 'NORMAL', name: 'Normal Loan', minAmountKobo: 5000000, maxAmountKobo: 500000000, interestRate: 0.05, maxTermMonths: 12, termOptions: [1, 3, 6, 12], requiredGuarantors: 1 },
+    { id: emergencyId, code: 'EMERGENCY', name: 'Emergency Loan', minAmountKobo: 5000000, maxAmountKobo: 500000000, interestRate: 0.07, maxTermMonths: 12, termOptions: [1, 3, 6, 12], requiredGuarantors: 1 },
   ];
 
-  // SC-002 active loan mid-repayment
+  // Completed trial loans for credit-clean members (Chidi, Fatima, Emeka)
+  const trialChidiId = uid('loan', 10);
+  const trialFatimaId = uid('loan', 11);
+  const trialEmekaId = uid('loan', 12);
+  // SC-002 active emergency mid-repayment
   const loanChidiId = uid('loan', 1);
-  // SC-004 active loan nearly complete
+  // SC-004 active normal nearly complete
   const loanFatimaId = uid('loan', 2);
-  // SC-005 pending approval
+  // SC-005 normal pending triple approval (FS step)
   const loanEmekaId = uid('loan', 3);
 
+  const emptyApproval = (step: string) => ({
+    step,
+    fs: { byUserId: null as string | null, byName: null as string | null, at: null as number | null, note: null as string | null },
+    admin: { byUserId: null as string | null, byName: null as string | null, at: null as number | null, note: null as string | null },
+    super: { byUserId: null as string | null, byName: null as string | null, at: null as number | null, note: null as string | null },
+    rejectReason: null as string | null,
+  });
+
   const loans = [
+    {
+      id: trialChidiId,
+      memberId: m[1].memberId,
+      loanProductId: trialId,
+      reference: 'LN-2025-1002',
+      principalKobo: 3000000,
+      interestKobo: 150000,
+      totalDueKobo: 3150000,
+      paidKobo: 3150000,
+      status: 'COMPLETED',
+      termMonths: 3,
+      appliedAt: monthsAgo(14),
+      disbursedAt: monthsAgo(14),
+      approval: { ...emptyApproval('APPROVED'), fs: { byUserId: treasurerUserId, byName: 'Tunde Bakare', at: monthsAgo(14), note: null }, admin: { byUserId: opsAdminUserId, byName: 'Ola Dayo', at: monthsAgo(14), note: null }, super: { byUserId: adminUserId, byName: 'Dan Segun', at: monthsAgo(14), note: null } },
+    },
+    {
+      id: trialFatimaId,
+      memberId: m[3].memberId,
+      loanProductId: trialId,
+      reference: 'LN-2025-1004',
+      principalKobo: 3000000,
+      interestKobo: 150000,
+      totalDueKobo: 3150000,
+      paidKobo: 3150000,
+      status: 'COMPLETED',
+      termMonths: 3,
+      appliedAt: monthsAgo(16),
+      disbursedAt: monthsAgo(16),
+      approval: { ...emptyApproval('APPROVED'), fs: { byUserId: treasurerUserId, byName: 'Tunde Bakare', at: monthsAgo(16), note: null }, admin: { byUserId: opsAdminUserId, byName: 'Ola Dayo', at: monthsAgo(16), note: null }, super: { byUserId: adminUserId, byName: 'Dan Segun', at: monthsAgo(16), note: null } },
+    },
+    {
+      id: trialEmekaId,
+      memberId: m[4].memberId,
+      loanProductId: trialId,
+      reference: 'LN-2025-1005',
+      principalKobo: 3000000,
+      interestKobo: 150000,
+      totalDueKobo: 3150000,
+      paidKobo: 3150000,
+      status: 'COMPLETED',
+      termMonths: 3,
+      appliedAt: monthsAgo(8),
+      disbursedAt: monthsAgo(8),
+      approval: { ...emptyApproval('APPROVED'), fs: { byUserId: treasurerUserId, byName: 'Tunde Bakare', at: monthsAgo(8), note: null }, admin: { byUserId: opsAdminUserId, byName: 'Ola Dayo', at: monthsAgo(8), note: null }, super: { byUserId: adminUserId, byName: 'Dan Segun', at: monthsAgo(8), note: null } },
+    },
     {
       id: loanChidiId,
       memberId: m[1].memberId,
       loanProductId: emergencyId,
       reference: 'LN-2026-2002',
       principalKobo: 20000000,
-      interestKobo: 1000000,
-      totalDueKobo: 21000000,
+      interestKobo: 1400000,
+      totalDueKobo: 21400000,
       paidKobo: 7000000,
       status: 'ACTIVE',
       termMonths: 6,
       appliedAt: monthsAgo(4),
       disbursedAt: monthsAgo(3),
+      approval: { ...emptyApproval('APPROVED'), fs: { byUserId: treasurerUserId, byName: 'Tunde Bakare', at: monthsAgo(4), note: null }, admin: { byUserId: opsAdminUserId, byName: 'Ola Dayo', at: monthsAgo(4), note: null }, super: { byUserId: adminUserId, byName: 'Dan Segun', at: monthsAgo(3), note: 'Disbursed' } },
     },
     {
       id: loanFatimaId,
       memberId: m[3].memberId,
-      loanProductId: schoolId,
+      loanProductId: normalId,
       reference: 'LN-2026-2004',
       principalKobo: 30000000,
-      interestKobo: 2100000,
-      totalDueKobo: 32100000,
+      interestKobo: 1500000,
+      totalDueKobo: 31500000,
       paidKobo: 28000000,
       status: 'ACTIVE',
       termMonths: 12,
       appliedAt: monthsAgo(10),
       disbursedAt: monthsAgo(9),
+      approval: { ...emptyApproval('APPROVED'), fs: { byUserId: treasurerUserId, byName: 'Tunde Bakare', at: monthsAgo(10), note: null }, admin: { byUserId: opsAdminUserId, byName: 'Ola Dayo', at: monthsAgo(10), note: null }, super: { byUserId: adminUserId, byName: 'Dan Segun', at: monthsAgo(9), note: null } },
     },
     {
       id: loanEmekaId,
       memberId: m[4].memberId,
-      loanProductId: emergencyId,
+      loanProductId: normalId,
       reference: 'LN-2026-2005',
       principalKobo: 15000000,
       interestKobo: 750000,
       totalDueKobo: 15750000,
       paidKobo: 0,
-      status: 'PENDING_APPROVAL',
+      status: 'PENDING_FS',
       termMonths: 6,
       appliedAt: monthsAgo(0),
       disbursedAt: null as number | null,
+      approval: emptyApproval('PENDING_FS'),
     },
   ];
 
@@ -218,7 +286,6 @@ export function createDefaultState() {
     { id: uid('g', 1), loanId: loanChidiId, guarantorMemberId: m[0].memberId, status: 'ACCEPTED', comment: null, requestedAt: monthsAgo(4) },
     { id: uid('g', 2), loanId: loanFatimaId, guarantorMemberId: m[1].memberId, status: 'ACCEPTED', comment: null, requestedAt: monthsAgo(10) },
     { id: uid('g', 3), loanId: loanEmekaId, guarantorMemberId: m[0].memberId, status: 'ACCEPTED', comment: null, requestedAt: monthsAgo(0) },
-    { id: uid('g', 4), loanId: loanEmekaId, guarantorMemberId: m[5].memberId, status: 'PENDING', comment: null, requestedAt: monthsAgo(0) },
   ];
 
   // Member market — coop shop (stock reflects the seeded orders below)
@@ -262,7 +329,7 @@ export function createDefaultState() {
     { id: uid('oi', 2), orderId: uid('ord', 2), productId: uid('mkt', 5), productName: 'Organic Manure', unitPriceKobo: 600000, quantity: 1 },
   ];
 
-  // SC-006 pending withdrawal
+  // SC-006 completed deposit-wallet withdrawal (instant — no staff approval)
   const fundRequests = [
     {
       id: uid('fund', 1),
@@ -270,11 +337,11 @@ export function createDefaultState() {
       reference: 'WDL-2026-6001',
       type: 'WITHDRAWAL',
       amountKobo: 5000000,
-      status: 'PENDING',
+      status: 'COMPLETED',
       requestedAt: daysFromNow(-2),
-      processedAt: null as number | null,
+      processedAt: daysFromNow(-2),
       processedBy: null as string | null,
-      notes: 'Medical support for family',
+      notes: 'Bank: GTBank | Acct: 0123456789',
     },
     {
       id: uid('fund', 2),
@@ -286,23 +353,88 @@ export function createDefaultState() {
       requestedAt: monthsAgo(2),
       processedAt: monthsAgo(2),
       processedBy: treasurerUserId,
-      notes: 'Voluntary thrift top-up',
+      notes: 'Deposit wallet top-up',
     },
   ];
+
+  // Adjust Ngozi wallet for seeded withdrawal (3M start − 50k withdrawal)
+  // wallet seed already set; leave as-is for demo
 
   const applications = [
     {
       id: uid('app', 1),
       reference: 'APP-2026-3010',
+      userId: null as string | null,
       firstName: 'Blessing',
+      middleName: 'O.',
       lastName: 'Adeyemi',
       email: 'blessing.adeyemi@email.com',
       phoneNumber: '+2348099001122',
-      employment: 'Civil servant',
-      status: 'PENDING',
+      referralCodeUsed: 'SC-001',
+      status: 'PENDING_APPROVAL',
+      regFeeDueAt: daysFromNow(4),
+      regFeePaidAt: daysFromNow(-2),
+      regFeePaymentRef: 'REG-2026-3010',
+      kym: {
+        legalName: 'Blessing O. Adeyemi',
+        idType: 'NATIONAL_ID',
+        idNumber: '12345678901',
+        occupation: 'Civil servant',
+        employer: 'Lagos State Civil Service',
+        salaryRange: '1M_3M',
+        nextOfKinName: 'Tolu Adeyemi',
+        nextOfKinPhone: '+2348099001133',
+        nextOfKinRelationship: 'Spouse',
+        address: '14 Admiralty Way, Lekki, Lagos',
+        residency: 'RESIDENT',
+        documentName: 'national-id.pdf',
+      },
       reviewNotes: null as string | null,
       submittedAt: daysFromNow(-3),
+      submittedForApprovalAt: daysFromNow(-1),
     },
+    {
+      id: uid('app', 2),
+      reference: 'APP-2026-3011',
+      userId: null as string | null,
+      firstName: 'Kemi',
+      middleName: 'A.',
+      lastName: 'Balogun',
+      email: 'kemi.balogun@email.com',
+      phoneNumber: '+2348088112233',
+      referralCodeUsed: 'SC-004',
+      status: 'AWAITING_KYM',
+      regFeeDueAt: daysFromNow(5),
+      regFeePaidAt: daysFromNow(-1),
+      regFeePaymentRef: 'REG-2026-3011',
+      kym: null as any,
+      reviewNotes: null as string | null,
+      submittedAt: daysFromNow(-1),
+      submittedForApprovalAt: null as number | null,
+    },
+  ];
+
+  const feeYear = new Date().getFullYear();
+  const mar31 = Math.floor(new Date(feeYear, 2, 31, 23, 59, 59).getTime() / 1000);
+  const developmentFees = [
+    ...m.map((x, i) => ({
+      id: uid('dfee', i + 1),
+      memberId: x.memberId,
+      year: feeYear,
+      amountKobo: x.residency === 'NON_RESIDENT' ? 1200000 : 600000,
+      status: i === 2 ? 'UNPAID' : 'PAID', // Temidayo unpaid
+      dueAt: mar31,
+      paidAt: i === 2 ? null as number | null : monthsAgo(2),
+    })),
+    ...staffMembers.map((s, i) => ({
+      id: uid('dfee', 20 + i),
+      memberId: s.memberId,
+      year: feeYear,
+      amountKobo: 600000,
+      status: 'PAID',
+      dueAt: mar31,
+      paidAt: monthsAgo(3),
+    })),
   ];
 
   function ledgerRow(
@@ -328,20 +460,22 @@ export function createDefaultState() {
   }
 
   const ledger = [
-    ledgerRow(uid('tx', 1), 'PAY-2026-1101', 'CONTRIBUTION_PAYMENT', monthly, monthsAgo(1), `Monthly contribution ${period1} — SC-001`, m[0].memberId),
-    ledgerRow(uid('tx', 2), 'PAY-2026-1102', 'CONTRIBUTION_PAYMENT', monthly, monthsAgo(1), `Monthly contribution ${period1} — SC-002`, m[1].memberId),
-    ledgerRow(uid('tx', 3), 'DEP-2026-1001', 'DEPOSIT', 10000000, monthsAgo(2), 'Voluntary thrift top-up — SC-001', m[0].memberId),
-    ledgerRow(uid('tx', 4), 'DISB-2026-2002', 'LOAN_DISBURSEMENT', 20000000, monthsAgo(3), 'Emergency loan disbursement — SC-002', m[1].memberId),
-    ledgerRow(uid('tx', 5), 'REP-2026-2201', 'LOAN_REPAYMENT', 3500000, monthsAgo(2), 'Loan repayment LN-2026-2002 — SC-002', m[1].memberId),
-    ledgerRow(uid('tx', 6), 'REP-2026-2202', 'LOAN_REPAYMENT', 3500000, monthsAgo(1), 'Loan repayment LN-2026-2002 — SC-002', m[1].memberId),
-    ledgerRow(uid('tx', 7), 'DISB-2026-2004', 'LOAN_DISBURSEMENT', 30000000, monthsAgo(9), 'School fees loan — SC-004', m[3].memberId),
-    ledgerRow(uid('tx', 8), 'REP-2026-2401', 'LOAN_REPAYMENT', 28000000, monthsAgo(1), 'Loan repayments (cumulative) — SC-004', m[3].memberId),
-    ledgerRow(uid('tx', 9), 'PAY-2026-1107', 'CONTRIBUTION_PAYMENT', monthly, monthsAgo(1), `Monthly contribution ${period1} — SC-007`, m[6].memberId),
+    ledgerRow(uid('tx', 1), 'PAY-2026-1101', 'CONTRIBUTION_PAYMENT', monthly, monthsAgo(1), `Monthly savings ${period1} — SC-004`, m[0].memberId),
+    ledgerRow(uid('tx', 2), 'PAY-2026-1102', 'CONTRIBUTION_PAYMENT', monthly, monthsAgo(1), `Monthly savings ${period1} — SC-005`, m[1].memberId),
+    ledgerRow(uid('tx', 3), 'DEP-2026-1001', 'DEPOSIT', 10000000, monthsAgo(2), 'Deposit wallet top-up — SC-004', m[0].memberId),
+    ledgerRow(uid('tx', 4), 'DISB-2026-2002', 'LOAN_DISBURSEMENT', 20000000, monthsAgo(3), 'Emergency loan disbursement — SC-005', m[1].memberId),
+    ledgerRow(uid('tx', 5), 'REP-2026-2201', 'LOAN_REPAYMENT', 3500000, monthsAgo(2), 'Loan repayment LN-2026-2002 — SC-005', m[1].memberId),
+    ledgerRow(uid('tx', 6), 'REP-2026-2202', 'LOAN_REPAYMENT', 3500000, monthsAgo(1), 'Loan repayment LN-2026-2002 — SC-005', m[1].memberId),
+    ledgerRow(uid('tx', 7), 'DISB-2026-2004', 'LOAN_DISBURSEMENT', 30000000, monthsAgo(9), 'Normal loan disbursement — SC-007', m[3].memberId),
+    ledgerRow(uid('tx', 15), 'WDL-2026-6001', 'DEPOSIT_WITHDRAWAL', 5000000, daysFromNow(-2), 'Deposit wallet withdrawal — SC-009', m[5].memberId),
+    ledgerRow(uid('tx', 16), 'SHR-2026-0001', 'DEPOSIT_TO_SHARES', 5000000, monthsAgo(12), 'Share capital purchase — SC-004', m[0].memberId),
+    ledgerRow(uid('tx', 8), 'REP-2026-2401', 'LOAN_REPAYMENT', 28000000, monthsAgo(1), 'Loan repayments (cumulative) — SC-007', m[3].memberId),
+    ledgerRow(uid('tx', 9), 'PAY-2026-1107', 'CONTRIBUTION_PAYMENT', monthly, monthsAgo(1), `Monthly savings ${period1} — SC-010`, m[6].memberId),
     ledgerRow(uid('tx', 10), 'INV-2026-0101', 'INVESTMENT_PURCHASE', 50000000, monthsAgo(6), 'Treasury bill placement — FGN 91-day', null),
     ledgerRow(uid('tx', 11), 'INV-2026-0102', 'INVESTMENT_RETURN', 2500000, monthsAgo(3), 'Investment return — FGN 91-day', null),
     ledgerRow(uid('tx', 12), 'DIV-2025-0001', 'DIVIDEND_PAYOUT', 7000000, monthsAgo(4), '2025 surplus dividend allocation', null),
-    ledgerRow(uid('tx', 13), 'MKT-2026-1001', 'MARKET_PURCHASE', 1700000, monthsAgo(1), 'Market purchase ORD-2026-1001 (2 items) — SC-001', m[0].memberId),
-    ledgerRow(uid('tx', 14), 'MKT-2026-1002', 'MARKET_PURCHASE', 600000, daysFromNow(-1), 'Market purchase ORD-2026-1002 (1 item) — SC-003', m[2].memberId),
+    ledgerRow(uid('tx', 13), 'MKT-2026-1001', 'MARKET_PURCHASE', 1700000, monthsAgo(1), 'Market purchase ORD-2026-1001 (2 items) — SC-004', m[0].memberId),
+    ledgerRow(uid('tx', 14), 'MKT-2026-1002', 'MARKET_PURCHASE', 600000, daysFromNow(-1), 'Market purchase ORD-2026-1002 (1 item) — SC-006', m[2].memberId),
   ];
 
   const investments = [
@@ -388,7 +522,8 @@ export function createDefaultState() {
       status: 'DISTRIBUTED',
       declaredAt: monthsAgo(4),
       distributedAt: monthsAgo(4),
-      notes: 'Board-approved dividend from thrift surplus and investment income',
+      notes: 'Board-approved dividend from surplus, weighted by share capital',
+      approval: { ...emptyApproval('APPROVED'), fs: { byUserId: treasurerUserId, byName: 'Tunde Bakare', at: monthsAgo(4), note: null }, admin: { byUserId: opsAdminUserId, byName: 'Ola Dayo', at: monthsAgo(4), note: null }, super: { byUserId: adminUserId, byName: 'Dan Segun', at: monthsAgo(4), note: null } },
     },
     {
       id: uid('divp', 2),
@@ -397,7 +532,8 @@ export function createDefaultState() {
       status: 'DECLARED',
       declaredAt: monthsAgo(0),
       distributedAt: null as number | null,
-      notes: 'Awaiting distribution after AGM ratification',
+      notes: 'Awaiting triple approval then share-weighted distribution to deposit wallets',
+      approval: emptyApproval('PENDING_FS'),
     },
   ];
 
@@ -445,8 +581,8 @@ export function createDefaultState() {
       recipient: m[0].email,
       template: 'WELCOME',
       subject: 'Welcome to SeedCoop — membership confirmed',
-      payload: JSON.stringify({ name: 'Ada Okonkwo', membershipNumber: 'SC-001' }),
-      body: 'Dear Ada, your membership SC-001 is active. Monthly thrift is ₦20,000.',
+      payload: JSON.stringify({ name: 'Ada Okonkwo', membershipNumber: 'SC-004' }),
+      body: 'Dear Ada, your membership SC-004 is active. Monthly savings is ₦20,000.',
       sentAt: monthsAgo(18),
     },
     {
@@ -479,10 +615,10 @@ export function createDefaultState() {
     {
       id: uid('mail', 5),
       recipient: m[5].email,
-      template: 'WITHDRAWAL_RECEIVED',
-      subject: 'Withdrawal request WDL-2026-6001 received',
+      template: 'WITHDRAWAL_COMPLETED',
+      subject: 'Withdrawal WDL-2026-6001 completed',
       payload: JSON.stringify({ reference: 'WDL-2026-6001', amountKobo: 5000000 }),
-      body: 'Dear Ngozi, your withdrawal request is pending treasurer approval.',
+      body: 'Dear Ngozi, ₦50,000.00 has been withdrawn from your deposit wallet. Ref: WDL-2026-6001.',
       sentAt: daysFromNow(-2),
     },
     {
@@ -491,7 +627,7 @@ export function createDefaultState() {
       template: 'DIVIDEND_PAID',
       subject: '2025 surplus dividend credited',
       payload: JSON.stringify({ amountKobo: 1500000, period: '2025 Financial Year Surplus' }),
-      body: 'Dear Ada, your dividend of ₦15,000.00 has been credited to your thrift balance.',
+      body: 'Dear Ada, your dividend of ₦15,000.00 has been credited to your deposit wallet.',
       sentAt: monthsAgo(4),
     },
     {
@@ -500,7 +636,7 @@ export function createDefaultState() {
       template: 'APPLICATION_RECEIVED',
       subject: 'Membership application APP-2026-3010 received',
       payload: JSON.stringify({ reference: 'APP-2026-3010' }),
-      body: 'Dear Blessing, we received your membership application. The board will review it shortly.',
+      body: 'Dear Blessing, registration fee received. Complete KYM and await board approval after background checks.',
       sentAt: daysFromNow(-3),
     },
   ];
@@ -520,6 +656,11 @@ export function createDefaultState() {
 
   return {
     password: PASSWORD,
+    /** Cooperative-wide rules (admin-editable) */
+    settings: {
+      monthlySavingsKobo: monthly, // ₦20,000 — used for new monthly obligations
+      loanThriftMultiplier: 2,
+    },
     users,
     members,
     applications,
@@ -532,6 +673,7 @@ export function createDefaultState() {
     orders,
     orderItems,
     fundRequests,
+    developmentFees,
     investments,
     dividendPeriods,
     dividendAllocations,
@@ -539,11 +681,12 @@ export function createDefaultState() {
     outbox,
     auditLogs,
     /** Directory for login UI */
+    // Personas rebuilt live in mockApi; seed keeps a snapshot for reference
     personas: {
       staff: [
-        { email: 'admin@seedcoop.ng', role: 'SUPER_ADMIN', label: 'Dan Segun', subtitle: 'Super Admin', portal: 'ADMIN' as const, membershipNumber: 'SC-008', tagline: 'Staff · also member SC-008 · switch portals anytime' },
-        { email: 'ops@seedcoop.ng', role: 'ADMIN', label: 'Ola Dayo', subtitle: 'Admin', portal: 'ADMIN' as const, membershipNumber: 'SC-010', tagline: 'Staff · also member SC-010 · switch portals anytime' },
-        { email: 'treasurer@seedcoop.ng', role: 'TREASURER', label: 'Tunde Bakare', subtitle: 'Treasurer', portal: 'ADMIN' as const, membershipNumber: 'SC-009', tagline: 'Staff · also member SC-009 · switch portals anytime' },
+        { email: 'admin@seedcoop.ng', role: 'SUPER_ADMIN', label: 'Dan Segun', subtitle: 'Super Admin', portal: 'ADMIN' as const, membershipNumber: 'SC-001', tagline: 'Staff · also member SC-001 · referral SC-001' },
+        { email: 'ops@seedcoop.ng', role: 'ADMIN', label: 'Ola Dayo', subtitle: 'Admin', portal: 'ADMIN' as const, membershipNumber: 'SC-003', tagline: 'Staff · also member SC-003 · switch portals anytime' },
+        { email: 'treasurer@seedcoop.ng', role: 'FINANCIAL_SECRETARY', label: 'Tunde Bakare', subtitle: 'Financial Secretary', portal: 'ADMIN' as const, membershipNumber: 'SC-002', tagline: 'Staff · also member SC-002 · switch portals anytime' },
       ],
       members: m.map((x) => ({
         email: x.email,
@@ -560,16 +703,16 @@ export function createDefaultState() {
 
 function memberTagline(num: string): string {
   switch (num) {
-    case 'SC-001': return 'Fully paid · Strong thrift · No active loan';
-    case 'SC-002': return 'Partial dues · Active emergency loan';
-    case 'SC-003': return 'Arrears · Loan restricted';
-    case 'SC-004': return 'School loan nearly complete';
-    case 'SC-005': return 'Loan pending board approval';
-    case 'SC-006': return 'Withdrawal pending';
-    case 'SC-007': return 'New member · Building thrift';
-    case 'SC-008': return 'Super Admin · Strong thrift · No active loan';
-    case 'SC-009': return 'Treasurer · Strong thrift · No active loan';
-    case 'SC-010': return 'Admin · Strong thrift · No active loan';
+    case 'SC-001': return 'Super Admin · Strong thrift · Referral code SC-001';
+    case 'SC-002': return 'Financial Secretary · Strong thrift';
+    case 'SC-003': return 'Admin · Strong thrift';
+    case 'SC-004': return 'Fully paid · Strong thrift · Shares met · No active loan';
+    case 'SC-005': return 'Partial dues · Active emergency loan · Trial clean';
+    case 'SC-006': return 'Arrears · Loan restricted · Dev fee unpaid';
+    case 'SC-007': return 'Normal loan nearly complete · Non-resident';
+    case 'SC-008': return 'Normal loan awaiting FS approval';
+    case 'SC-009': return 'Recent deposit withdrawal';
+    case 'SC-010': return 'New member · Needs minimum shares · Trial available';
     default: return 'Active member';
   }
 }
